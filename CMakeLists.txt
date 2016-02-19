@@ -6,6 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   csapex_point_cloud
   csapex_core_plugins
   csapex_transform
+  csapex_ros
 )
 
 find_package(PCL 1.2 REQUIRED COMPONENTS common)
@@ -24,6 +25,8 @@ include_directories(
 
 add_library(schoenbuch_node
     src/pillar_localization.cpp
+    src/param_estimator.cpp
+    src/pose_difference.cpp
 )
 
 target_link_libraries(schoenbuch_node

@@ -8,9 +8,13 @@
 #include <csapex_point_cloud/indeces_message.h>
 #include <csapex_core_plugins/vector_message.h>
 #include <csapex_transform/transform_message.h>
+#include <csapex/msg/generic_pointer_message.hpp>
+#include <csapex_ros/yaml_io.hpp>
+#include <csapex_ros/ros_message_conversion.h>
 
 /// SYSTEM
 #include <tf/tf.h>
+#include <nav_msgs/Odometry.h>
 
 using namespace csapex::connection_types;
 
@@ -29,12 +33,19 @@ struct Impl;
 class PillarLocalization : public Node
 {
 public:
+    PillarLocalization()
+        : init_(false), has_start_pose_(false)
+    {
+
+    }
+
     void setup(csapex::NodeModifier& modifier) override
     {
         in_ = modifier.addInput<PointCloudMessage>("Cloud");
         input_indices_ = modifier.addInput<GenericVectorMessage, pcl::PointIndices>("clusters");
 
         out_ = modifier.addOutput<TransformMessage>("Pose");
+        out_rel_ = modifier.addOutput<TransformMessage>("Pose (relative)");
     }
 
     void setupParameters(csapex::Parameterizable& params) override
@@ -42,6 +53,10 @@ public:
         params.addParameter(param::ParameterFactory::declareRange("radius", 0.01, 1.0, 0.20, 0.001), radius_);
         params.addParameter(param::ParameterFactory::declareRange("threshold", 0.0, 1.0, 0.10, 0.001), threshold_);
         params.addParameter(param::ParameterFactory::declareRange("min pts", 1, 100, 4, 1), min_pts_);
+
+        params.addParameter(param::ParameterFactory::declareTrigger("reset"), [this](param::Parameter*) {
+            reset();
+        });
         params.addParameter(param::ParameterFactory::declareRange("distance/1", 0.01, 20.0, 0.05, 0.001), dist_1_);
         params.addParameter(param::ParameterFactory::declareRange("distance/2", 0.01, 20.0, 0.05, 0.001), dist_2_);
         params.addParameter(param::ParameterFactory::declareRange("distance/3", 0.01, 20.0, 0.05, 0.001), dist_3_);
@@ -54,6 +69,14 @@ public:
         boost::apply_visitor (PointCloudMessage::Dispatch<PillarLocalization>(this, msg), msg->value);
     }
 
+    void reset()
+    {
+        init_ = false;
+        has_start_pose_ = false;
+
+        last_stamp_ = 0;
+    }
+
     template <class PointT>
     void inputCloud(typename pcl::PointCloud<PointT>::ConstPtr cloud)
     {
@@ -63,12 +86,23 @@ public:
 
     void inputCloudImpl(typename pcl::PointCloud<pcl::PointXYZI>::ConstPtr cloud)
     {
+        auto current_stamp = cloud->header.stamp;
+        if(last_stamp_ == 0) {
+            last_stamp_ = current_stamp;
+            return;
+        }
+
+        int dt_msec = current_stamp - last_stamp_;
+        last_stamp_ = current_stamp;
+
+        double dt = dt_msec / 1e6;
+
         std::vector<pcl::PointIndices> clusters = *msg::getMessage<GenericVectorMessage, pcl::PointIndices>(input_indices_);
 
         std::vector<std::pair<int, tf::Vector3>> pillar_candidates;
 
         for(const pcl::PointIndices& indices_msg : clusters) {
-            if(indices_msg.indices.size() < min_pts_) {
+            if((int) indices_msg.indices.size() < min_pts_) {
                 continue;
             }
 
@@ -99,6 +133,33 @@ public:
 
         std::sort(pillar_candidates.begin(), pillar_candidates.end(), std::greater<std::pair<int,tf::Vector3>>());
 
+
+        if(!init_) {
+            if(pillar_candidates.size() != 3) {
+                awarn << "cannot initialize, need exactly 3 pillar candiates" << std::endl;
+                return;
+            }
+
+            pillar_a = pillar_candidates[0].second;
+            pillar_b = pillar_candidates[1].second;
+            pillar_c = pillar_candidates[2].second;
+
+            tf::Vector3 ab = pillar_b - pillar_a;
+            tf::Vector3 ac = pillar_c - pillar_a;
+            tf::Vector3 bc = pillar_c - pillar_b;
+
+            dist_1_ = (ac).length();
+            dist_2_ = (ab).length();
+            dist_3_ = (bc).length();
+
+            setParameter("distance/1", dist_1_);
+            setParameter("distance/2", dist_2_);
+            setParameter("distance/3", dist_3_);
+
+            init_ = true;
+
+            ainfo << "initialization done" << std::endl;
+        }
 
         if(pillar_candidates.size() >= 3) {
             tf::Vector3 a = pillar_candidates[0].second;
@@ -150,30 +211,56 @@ public:
                 tf::Quaternion q = tf::createQuaternionFromYaw(yaw_correction);
                 tf::Transform pose(q, origin);// tf::quatRotate(q, origin));
 
+                //correct(a.length(), b.length(), c.length());
+
                 TransformMessage::Ptr result = std::make_shared<TransformMessage>("/pillars", "/base_link");
                 result->value = pose;
 
                 msg::publish(out_, result);
+
+                if(!has_start_pose_) {
+                    start_pose_ = pose;
+                    has_start_pose_ = true;
+                }
+
+                TransformMessage::Ptr result_rel = std::make_shared<TransformMessage>("/pillars", "/base_link");
+                result_rel->value = pose * start_pose_.inverse();
+
+                msg::publish(out_rel_, result_rel);
+
             }
         }
     }
 
+private:
 
 private:
     Input* in_;
     Input* input_indices_;
 
     Output* out_;
-    Output* out_cloud_;
+    Output* out_rel_;
+
+    bool init_;
 
     int min_pts_;
 
     double radius_;
     double threshold_;
 
+
+    tf::Vector3 pillar_a;
+    tf::Vector3 pillar_b;
+    tf::Vector3 pillar_c;
+
     double dist_1_;
     double dist_2_;
     double dist_3_;
+
+    uint64_t last_stamp_;
+
+    bool has_start_pose_;
+    tf::Transform start_pose_;
 };
 
 

@@ -2,4 +2,10 @@
 <class type="csapex::PillarLocalization" base_class_type="csapex::Node">
   <description>Triangulation of the robot pose for reflective pillars.</description>
 </class>
+<class type="csapex::ParamEstimator" base_class_type="csapex::Node">
+  <description>Parameter estimation for Goran's controller</description>
+</class>
+<class type="csapex::PoseDifference" base_class_type="csapex::Node">
+  <description></description>
+</class>
 </library>
