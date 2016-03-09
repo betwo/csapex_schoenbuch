@@ -9,6 +9,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <tf/transform_broadcaster.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <tf/tf.h>
 
 class PillarLocalizationNode
 {
@@ -22,18 +23,19 @@ public:
         pub_marker_ = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 10, false);
         pub_marker_array_ = nh_.advertise<visualization_msgs::MarkerArray>("visualization_marker_array", 10, false);
 
-        threshold_ = pnh_.param("threshold", 0.25);
+        ekf_.dist_threshold_ = pnh_.param("threshold", 0.25);
 
         pillar_extractor_.radius_ = pnh_.param("radius", 0.055);
         pillar_extractor_.min_pts_ = pnh_.param("min_pts", 10);
+        pillar_extractor_.max_range_  = pnh_.param("max_range", 15.0);
         pillar_extractor_.min_intensity_ = pnh_.param("min_intensity", 150);
-        pillar_extractor_.min_cluster_size_= pnh_.param("min_cluster_size", 10);
+        pillar_extractor_.min_cluster_size_= pnh_.param("min_cluster_size", 6);
         pillar_extractor_.cluster_tolerance_ = pnh_.param("cluster_tolerance", 0.4);
     }
 
     void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& input)
     {
-        std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > pillars = pillar_extractor_.findPillars(input);
+        std::vector<Pillar> pillars = pillar_extractor_.findPillars(input);
 
         if(!init_) {
             if(pillars.size() != 3) {
@@ -50,8 +52,9 @@ public:
 
         ROS_INFO_STREAM(pillars.size() << " pillar candidates");
 
-        if(pillars.size() == 3) {
-            ekf_.correct(pillars);
+        if(pillars.size() > 0) {
+//            ekf_.correct(pillars);
+            ekf_.correctAbsolute(pillars);
 
             last_stamp_ = ros::Time();
         }
@@ -73,8 +76,11 @@ public:
             ros::Duration dur = current_stamp - last_stamp_;
             last_stamp_ = current_stamp;
 
-            tf::Pose delta = last_pose_.inverse() * current_odom_pose;
+            tf::Pose delta_pose = last_pose_.inverse() * current_odom_pose;
             last_pose_ = current_odom_pose;
+
+            Eigen::Vector3d delta(delta_pose.getOrigin().x(), delta_pose.getOrigin().y(),
+                                  tf::getYaw(delta_pose.getRotation()));
 
             double dt = dur.toSec();
 
@@ -113,19 +119,32 @@ public:
 
             marker.type = visualization_msgs::Marker::CYLINDER;
             marker.ns = "pillar";
+            marker.color.r = 0.0;
             marker.color.g = 1.0;
             marker.scale.x = 2* pillar_extractor_.radius_;
             marker.scale.y = 2* pillar_extractor_.radius_;
             marker.scale.z = 1.0;
 
             for(std::size_t i = 0; i < ekf_.pillars_.size(); ++i) {
-                Eigen::Vector3d pos = ekf_.pillars_[i];
+                Eigen::Vector3d pos = ekf_.pillars_[i].centre;
                 marker.pose.position.x = pos(0);
                 marker.pose.position.y = pos(1);
 
-                marker.id = i;
+                markers.markers.push_back(marker);
+
+                marker.id++;
+            }
+
+            marker.color.b = 1.0;
+
+            for(std::size_t i = 0; i < ekf_.meas_pillars_.size(); ++i) {
+                Eigen::Vector3d pos = ekf_.meas_pillars_[i].centre;
+                marker.pose.position.x = pos(0);
+                marker.pose.position.y = pos(1);
 
                 markers.markers.push_back(marker);
+
+                marker.id++;
             }
 
             pub_marker_array_.publish(markers);
@@ -150,16 +169,6 @@ private:
     EKF ekf_;
 
     bool init_;
-
-    double threshold_;
-
-    //    tf::Vector3 pillar_a;
-    //    tf::Vector3 pillar_b;
-    //    tf::Vector3 pillar_c;
-
-    //    double dist_1_;
-    //    double dist_2_;
-    //    double dist_3_;
 
     ros::Time last_stamp_;
     tf::Pose last_pose_;

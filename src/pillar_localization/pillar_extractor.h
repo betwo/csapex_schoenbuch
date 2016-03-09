@@ -1,6 +1,9 @@
 #ifndef PILLAREXTRACTOR_H
 #define PILLAREXTRACTOR_H
 
+/// PROJECT
+#include "pillar.h"
+
 /// SYSTEM
 #include <tf/tf.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -15,12 +18,13 @@ public:
     PillarExtractor();
     ~PillarExtractor();
 
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > findPillars(const sensor_msgs::PointCloud2::ConstPtr& input);
+    std::vector<Pillar> findPillars(const sensor_msgs::PointCloud2::ConstPtr& input);
 
 public:
     int min_pts_;
     int min_intensity_;
     double radius_;
+    double max_range_;
     int min_cluster_size_;
     double cluster_tolerance_;
 

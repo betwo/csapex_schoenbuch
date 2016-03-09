@@ -48,6 +48,7 @@ include_directories(
 
 add_library(schoenbuch
     src/pillar_localization/ekf.cpp
+    src/pillar_localization/pillar.cpp
     src/pillar_localization/pillar_extractor.cpp
 )
 target_link_libraries(schoenbuch
