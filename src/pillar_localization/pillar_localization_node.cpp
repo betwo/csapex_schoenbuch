@@ -23,14 +23,16 @@ public:
         pub_marker_ = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 10, false);
         pub_marker_array_ = nh_.advertise<visualization_msgs::MarkerArray>("visualization_marker_array", 10, false);
 
+        fixed_frame_ = pnh_.param("fixed_frame", std::string("/pillars"));
+     
         ekf_.dist_threshold_ = pnh_.param("threshold", 0.25);
 
         pillar_extractor_.radius_ = pnh_.param("radius", 0.055);
-        pillar_extractor_.min_pts_ = pnh_.param("min_pts", 10);
+        pillar_extractor_.min_pts_ = pnh_.param("min_pts", 5);
         pillar_extractor_.max_range_  = pnh_.param("max_range", 15.0);
         pillar_extractor_.min_intensity_ = pnh_.param("min_intensity", 150);
-        pillar_extractor_.min_cluster_size_= pnh_.param("min_cluster_size", 6);
-        pillar_extractor_.cluster_tolerance_ = pnh_.param("cluster_tolerance", 0.4);
+        pillar_extractor_.min_cluster_size_= pnh_.param("min_cluster_size", 5);
+        pillar_extractor_.cluster_tolerance_ = pnh_.param("cluster_tolerance", 0.7);
     }
 
     void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& input)
@@ -90,13 +92,13 @@ public:
             tf::Vector3 origin(ekf_.mu(0), ekf_.mu(1), 0);
             tf::Quaternion q = tf::createQuaternionFromYaw(ekf_.mu(2));
             tf::StampedTransform pose(tf::Transform(q, origin).inverse(),
-                                      current_stamp, "/velodyne", "/pillars");
+                                      current_stamp, "/velodyne", fixed_frame_);
 
             tfb_.sendTransform(pose);
 
 
             visualization_msgs::Marker marker;
-            marker.header.frame_id = "/pillars";
+            marker.header.frame_id = fixed_frame_;
             marker.header.stamp = current_stamp;
             marker.action = visualization_msgs::Marker::ADD;
             marker.type = visualization_msgs::Marker::SPHERE;
@@ -169,6 +171,8 @@ private:
     EKF ekf_;
 
     bool init_;
+
+    std::string fixed_frame_;
 
     ros::Time last_stamp_;
     tf::Pose last_pose_;
