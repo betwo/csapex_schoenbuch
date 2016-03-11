@@ -11,6 +11,17 @@ double angleDiff(const double a1, const double a2)
 {
     return std::atan2(std::sin(a1 - a2), std::cos(a1 - a2)) ;
 }
+double normalizeAngle(const double a)
+{
+    double res = a;
+    while (res <= -M_PI) {
+        res += 2 * M_PI;
+    }
+    while (res > M_PI) {
+        res -= 2 * M_PI;
+    }
+    return res;
+}
 }
 
 EKF::EKF()
@@ -20,7 +31,7 @@ EKF::EKF()
 
     I = Eigen::Matrix3d::Identity();
 
-    P = I * pow(10.0, 2);
+    P = I * pow(1.0, 2);
 
     R = Eigen::Matrix3d::Identity();
     R(0,0) = pow(0.15, 2);
@@ -28,14 +39,15 @@ EKF::EKF()
     R(2,2) = pow(0.1, 2);
 
     //    Q =  Eigen::Matrix3d::Identity() * pow(10.0, 2);
-    Q = Eigen::Matrix2d::Identity();
-    Q(0,0) = pow(0.3, 2);
-    Q(1,1) = pow(0.3, 2);
+    Q = Eigen::Matrix3d::Identity();
+    Q(0,0) = pow(0.35, 2);
+    Q(1,1) = pow(0.35, 2);
+    Q(2,2) = pow(0.6, 2);
 
     Q_abs = Eigen::Matrix3d::Identity();
-    Q_abs(0,0) = pow(0.05, 2);
-    Q_abs(1,1) = pow(0.05, 2);
-    Q_abs(2,2) = pow(0.15, 2);
+    Q_abs(0,0) = pow(0.20, 2);
+    Q_abs(1,1) = pow(0.20, 2);
+    Q_abs(2,2) = pow(0.5, 2);
 
 
     dist_threshold_ = 1.0;
@@ -89,6 +101,8 @@ void EKF::predict(const Eigen::Vector3d& delta, double _v, double _omega, double
 
     mu += g;
     P = G * P * G.transpose() + R;
+
+    mu(2) = normalizeAngle(mu(2));
 }
 
 void EKF::correct(const std::vector<Pillar>& z)
@@ -96,7 +110,15 @@ void EKF::correct(const std::vector<Pillar>& z)
     if(z.size() >= 3) {
         correctAbsolute(z);
     } else {
-        //correctLandmark(z);
+        correctLandmark(z);
+    }
+
+    meas_pillars_.clear();
+
+    for(std::size_t i = 0; i < std::min((std::size_t) 3, z.size()); ++i) {
+        Eigen::Vector3d p_i = z[i].centre;
+
+        meas_pillars_.push_back(p_i);
     }
 }
 
@@ -104,13 +126,9 @@ void EKF::correctLandmark(const std::vector<Pillar>& z)
 {
     std::size_t N = pillars_.size();
 
-    typedef Eigen::Matrix<double, 2, 3> Matrix23;
-    typedef Eigen::Matrix2d Matrix2;
-    typedef Eigen::Matrix<double, 3, 2> Matrix32;
-
-    std::vector<Matrix2, Eigen::aligned_allocator<Matrix2> > Psi_inv(N);
-    std::vector<Matrix23, Eigen::aligned_allocator<Matrix23> > H(N);
-    std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d> > z_hat(N);
+    std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix3d> > S(N);
+    std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix3d> > H(N);
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > z_hat(N);
 
     for(std::size_t k = 0; k < N; ++k) {
         const Eigen::Vector3d& m_k = pillars_[k].centre;
@@ -121,53 +139,55 @@ void EKF::correctLandmark(const std::vector<Pillar>& z)
 
         double q_k = dx * dx + dy * dy;
 
-        z_hat[k] << sqrt(q_k), std::atan2(dy, dx) - mu(2);
+        z_hat[k] << sqrt(q_k), normalizeAngle(std::atan2(dy, dx) - mu(2)), 0;
 
-        H[k] << dx / std::sqrt(q_k), - dy / std::sqrt(q_k), 0,
-                dy / q_k, dx / q_k, -1 / q_k;
+        H[k] << -dx / std::sqrt(q_k), - dy / std::sqrt(q_k), 0,
+                dy / q_k, -dx / q_k, -1,
+                0, 0, 0;
 
-        Psi_inv[k] = (H[k] * P * H[k].transpose() + Q).inverse();
+        S[k] = H[k] * P * H[k].transpose() + Q;
     }
 
 
-    std::vector<Matrix32, Eigen::aligned_allocator<Matrix32> > K(z.size());
-
-    Eigen::Vector3d dmu;
-    Eigen::Matrix3d dP;
-
-    meas_pillars_.clear();
+    std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix3d> > K(z.size());
 
     for(std::size_t i = 0; i < z.size(); ++i) {
-        const Eigen::Vector3d& p_i = z[i].centre;
+        Eigen::Vector3d p_i = z[i].centre;
 
-        meas_pillars_.push_back(Pillar(p_i + mu));
+        Eigen::Vector3d z_i;
+        z_i << hypot(p_i(1), p_i(0)), std::atan2(p_i(1), p_i(0)), 0;
 
-        Eigen::Vector2d z_i;
-        z_i << hypot(p_i(1), p_i(0)), std::atan2(p_i(1), p_i(0));
-
-        double min_dist = std::numeric_limits<double>::infinity();
+        double max_p = -std::numeric_limits<double>::infinity();
         std::size_t ji = 0;
         for(std::size_t k = 0; k < N; ++k) {
-            Eigen::Vector2d dz = z_i - z_hat[k];
-            double dist = std::abs(dz.transpose() * Psi_inv[k] * dz);
-            if(dist < min_dist) {
-                min_dist = dist;
+            Eigen::Vector3d dz = z_i - z_hat[k];
+//            dz(2) = angleDiff(z_i(2), z_hat[k](2));
+            double norm = std::sqrt((2 * M_PI * S[k]).determinant());
+            double p = norm * std::exp(-0.5 * dz.transpose() * S[k].inverse() * dz);
+            if(p > max_p) {
+                max_p = p;
                 ji = k;
             }
         }
 
-        if(std::isfinite(min_dist) && min_dist < dist_threshold_) {
-            K[i] = P * H[ji].transpose() * Psi_inv[ji];
+        if(std::isfinite(max_p) && max_p > 0.5) {
+            K[i] = P * H[ji].transpose() * S[ji].inverse();
 
-            dmu += K[i] * (z_i - z_hat[ji]);
-            dP += K[i] * H[ji];
+            Eigen::Vector3d dz = z_i - z_hat[ji];
+//            dz(2) = angleDiff(z_i(2), z_hat[ji](2));
+
+            ROS_WARN_STREAM("z_i:  " << z_i);
+            ROS_WARN_STREAM("z_ih: " <<  z_hat[ji]);
+            ROS_WARN_STREAM("dz: " << dz << ", max_p:" << max_p);
+
+            mu = mu + K[i] * dz;
+            P = (I - K[i] * H[ji]) * P;
         }
     }
 
-    mu += dmu;
-    P = (I - dP) * P;
-}
+    mu(2) = normalizeAngle(mu(2));
 
+}
 
 void EKF::correctAbsolute(const std::vector<Pillar>& z)
 {
@@ -266,6 +286,8 @@ void EKF::correctAbsolute(const std::vector<Pillar>& z)
             innovation(2) = angleDiff(z(2), hx(2));
 
             mu = mu + K * innovation;
+            mu(2) = normalizeAngle(mu(2));
+
             P = (I - K * H) * P;
         }
     }

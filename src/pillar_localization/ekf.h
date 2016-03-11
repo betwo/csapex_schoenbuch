@@ -24,7 +24,7 @@ struct EKF {
     Eigen::Matrix3d G;
     Eigen::Matrix3d R;
 
-    Eigen::Matrix2d Q;
+    Eigen::Matrix3d Q;
     Eigen::Matrix3d Q_abs;
 
     double dist_threshold_;
@@ -43,6 +43,7 @@ struct EKF {
 
 private:
     void correctLandmark(const std::vector<Pillar> &z);
+//    void correctLandmarkOld(const std::vector<Pillar> &z);
     void correctAbsolute(const std::vector<Pillar> &z);
 
 };

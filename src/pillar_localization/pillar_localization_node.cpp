@@ -92,12 +92,12 @@ public:
 
             ROS_WARN_STREAM("mean: " << d[0] << ", " << d[1] << ", " << d[2]);
 
-//            int arg_min_k = 0;
-//            for(int k = 1; k < 3; ++k) {
-//                if(d[k] < d[arg_min_k]) {
-//                    arg_min_k = k;
-//                }
-//            }
+            //            int arg_min_k = 0;
+            //            for(int k = 1; k < 3; ++k) {
+            //                if(d[k] < d[arg_min_k]) {
+            //                    arg_min_k = k;
+            //                }
+            //            }
 
             std::vector<std::pair<double, Pillar> > pillars_resorted;
             for(std::size_t k = 0; k < 3; ++k) {
@@ -212,6 +212,7 @@ public:
 
             visualization_msgs::MarkerArray markers;
 
+            // MAP
             marker.type = visualization_msgs::Marker::CYLINDER;
             marker.ns = "pillar";
             marker.color.r = 0.0;
@@ -230,15 +231,27 @@ public:
                 marker.id++;
             }
 
+            // MEASUREMENT
+            marker.scale.x = pillar_extractor_.radius_;
+            marker.scale.y = pillar_extractor_.radius_;
+            marker.scale.z = 2.0;
+
             marker.color.b = 1.0;
 
-            for(std::size_t i = 0; i < ekf_.meas_pillars_.size(); ++i) {
-                Eigen::Vector3d pos = ekf_.meas_pillars_[i].centre;
-                marker.pose.position.x = pos(0);
-                marker.pose.position.y = pos(1);
+            for(std::size_t i = 0; i < 3; ++i) {
+                marker.header.frame_id = "velodyne";
+                if(i >= ekf_.meas_pillars_.size()) {
+                    marker.action = visualization_msgs::Marker::DELETE;
+
+                } else {
+                    marker.action = visualization_msgs::Marker::ADD;
+                    Eigen::Vector3d pos = ekf_.meas_pillars_[i].centre;
+                    marker.pose.position.x = pos(0);
+                    marker.pose.position.y = pos(1);
+                }
+
 
                 markers.markers.push_back(marker);
-
                 marker.id++;
             }
 
