@@ -4,6 +4,14 @@
 /// SYSTEM
 #include <stdexcept>
 #include <Eigen/Dense>
+#include <ros/console.h>
+
+namespace {
+double angleDiff(const double a1, const double a2)
+{
+    return std::atan2(std::sin(a1 - a2), std::cos(a1 - a2)) ;
+}
+}
 
 EKF::EKF()
     : initialized_(false)
@@ -12,7 +20,7 @@ EKF::EKF()
 
     I = Eigen::Matrix3d::Identity();
 
-    P = I * pow(1.0, 2);
+    P = I * pow(10.0, 2);
 
     R = Eigen::Matrix3d::Identity();
     R(0,0) = pow(0.15, 2);
@@ -25,8 +33,8 @@ EKF::EKF()
     Q(1,1) = pow(0.3, 2);
 
     Q_abs = Eigen::Matrix3d::Identity();
-    Q_abs(0,0) = pow(0.6, 2);
-    Q_abs(1,1) = pow(0.6, 2);
+    Q_abs(0,0) = pow(0.05, 2);
+    Q_abs(1,1) = pow(0.05, 2);
     Q_abs(2,2) = pow(0.15, 2);
 
 
@@ -54,6 +62,8 @@ void EKF::setPillars(const std::vector<Pillar>& pillars)
     dist_3_ = (bc).norm();
 
     initialized_ = false;
+
+    correctAbsolute(pillars);
 }
 
 void EKF::predict(const Eigen::Vector3d& delta, double _v, double _omega, double dt)
@@ -66,9 +76,9 @@ void EKF::predict(const Eigen::Vector3d& delta, double _v, double _omega, double
     double v = f * _v;
 
     Eigen::Vector3d g;
-//    g <<    v / omega * (sin(theta + omega * dt) - sin(theta)),
-//            v / omega * (cos(theta) - cos(theta + omega * dt)),
-//            omega * dt;
+    //    g <<    v / omega * (sin(theta + omega * dt) - sin(theta)),
+    //            v / omega * (cos(theta) - cos(theta + omega * dt)),
+    //            omega * dt;
     g << std::cos(theta) * delta(0) - std::sin(theta) * delta(1),
             std::sin(theta) * delta(0) + std::cos(theta) * delta(1),
             delta(2);
@@ -82,6 +92,15 @@ void EKF::predict(const Eigen::Vector3d& delta, double _v, double _omega, double
 }
 
 void EKF::correct(const std::vector<Pillar>& z)
+{
+    if(z.size() >= 3) {
+        correctAbsolute(z);
+    } else {
+        //correctLandmark(z);
+    }
+}
+
+void EKF::correctLandmark(const std::vector<Pillar>& z)
 {
     std::size_t N = pillars_.size();
 
@@ -152,90 +171,102 @@ void EKF::correct(const std::vector<Pillar>& z)
 
 void EKF::correctAbsolute(const std::vector<Pillar>& z)
 {
-    if(z.size() >= 3) {
-        const Eigen::Vector3d& a = z[0].centre;
-        const Eigen::Vector3d& b = z[1].centre;
-        const Eigen::Vector3d& c = z[2].centre;
+    assert(z.size() >= 3);
 
-        Eigen::Vector3d ab = b - a;
-        Eigen::Vector3d ac = c - a;
-        Eigen::Vector3d bc = c - b;
+    const Eigen::Vector3d& a = z[0].centre;
+    const Eigen::Vector3d& b = z[1].centre;
+    const Eigen::Vector3d& c = z[2].centre;
 
-        double d_ac = (ac).norm();
-        double d_ab = (ab).norm();
-        double d_bc = (bc).norm();
+    Eigen::Vector3d ab = b - a;
+    Eigen::Vector3d ac = c - a;
+    Eigen::Vector3d bc = c - b;
 
-        double mind = std::min(d_ac, std::min(d_ab, d_bc));
+    double d_ac = (ac).norm();
+    double d_ab = (ab).norm();
+    double d_bc = (bc).norm();
 
-        Eigen::Vector3d anchor;
-        Eigen::Vector3d lever;
-        if(d_ab == mind) {
-            anchor = c;
-            lever = (d_ac < d_bc) ? a : b;
-        } else if(d_ac == mind) {
-            anchor = b;
-            lever = (d_ab < d_bc) ? a : c;
+    double mind = std::min(d_ac, std::min(d_ab, d_bc));
+
+    Eigen::Vector3d anchor;
+    Eigen::Vector3d lever;
+    if(d_ab == mind) {
+        anchor = c;
+        lever = (d_ac > d_bc) ? a : b;
+    } else if(d_ac == mind) {
+        anchor = b;
+        lever = (d_ab > d_bc) ? a : c;
+    } else {
+        anchor = a;
+        lever = (d_ab > d_ac) ? b : c;
+    }
+
+    std::vector<double> dists_meas;
+    dists_meas.push_back(d_ac);
+    dists_meas.push_back(d_ab);
+    dists_meas.push_back(d_bc);
+    std::vector<double> dists_ref;
+    dists_ref.push_back(dist_1_);
+    dists_ref.push_back(dist_2_);
+    dists_ref.push_back(dist_3_);
+
+    std::sort(dists_meas.begin(), dists_meas.end());
+    std::sort(dists_ref.begin(), dists_ref.end());
+
+    double max_delta = 0;
+    for(std::size_t i = 0; i < 3; ++i) {
+        double delta = std::abs(dists_meas[i] - dists_ref[i]);
+        if(delta > max_delta) {
+            max_delta = delta;
+        }
+    }
+
+    if(max_delta < dist_threshold_) {
+        Eigen::Vector3d base_line = lever - anchor;
+        double yaw = -std::atan2(base_line.y(), base_line.x());
+
+        Eigen::Vector3d origin(std::cos(yaw) * anchor.x() - std::sin(yaw) * anchor.y(),
+                               std::sin(yaw) * anchor.x() + std::cos(yaw) * anchor.y(),
+                               0);
+        Eigen::Matrix3d pose;
+        pose << std::cos(yaw), -std::sin(yaw), -origin(0),
+                std::sin(yaw), std::cos(yaw), -origin(1),
+                0, 0, 1;
+
+        if(!initialized_) {
+            initial_pose_ = pose;
+            initial_pose_inv_ = pose.inverse();
+            initial_pose_yaw_ = yaw;
+
+
+            for(std::size_t i = 0; i < pillars_.size(); ++i) {
+                Eigen::Matrix3d p;
+                p << 1, 0, pillars_[i].centre(0),
+                        0, 1, pillars_[i].centre(1),
+                        0, 0, 1;
+                pillars_[i].centre = (initial_pose_inv_ * p).col(2);
+            }
+
+            initialized_ = true;
+
         } else {
-            anchor = a;
-            lever = (d_ab < d_ac) ? b : c;
-        }
+            Eigen::Matrix3d rel_pose = initial_pose_inv_ * pose;
+            double rel_yaw = yaw - initial_pose_yaw_;
 
-        std::vector<double> dists_meas;
-        dists_meas.push_back(d_ac);
-        dists_meas.push_back(d_ab);
-        dists_meas.push_back(d_bc);
-        std::vector<double> dists_ref;
-        dists_ref.push_back(dist_1_);
-        dists_ref.push_back(dist_2_);
-        dists_ref.push_back(dist_3_);
+            Eigen::Vector3d p = rel_pose.col(2);
 
-        std::sort(dists_meas.begin(), dists_meas.end());
-        std::sort(dists_ref.begin(), dists_ref.end());
+            Eigen::Vector3d z(p(0), p(1), rel_yaw);
+            Eigen::Vector3d hx = mu;
 
-        double max_delta = 0;
-        for(std::size_t i = 0; i < 3; ++i) {
-            double delta = std::abs(dists_meas[i] - dists_ref[i]);
-            if(delta > max_delta) {
-                max_delta = delta;
-            }
-        }
+            Eigen::Matrix3d H = I;
 
-        if(max_delta < dist_threshold_) {
-            Eigen::Vector3d base_line = lever - anchor;
-            double yaw_correction = std::atan2(base_line.y(), base_line.x());
+            Eigen::Matrix3d K = P * H.transpose() * (H * P * H.transpose() + Q_abs).inverse();
 
-            Eigen::Vector3d origin(anchor.x(), anchor.y(), 0);
-            //            Eigen::Quaterniond quat; quat = Eigen::AngleAxis<double>(yaw_correction, Eigen::Vector3d(0,0,1));
-            Eigen::Matrix3d pose;
-            pose << std::cos(yaw_correction), -std::sin(yaw_correction), origin.x(),
-                    std::sin(yaw_correction), std::cos(yaw_correction), origin.y(),
-                    0, 0, 1;
+            Eigen::Vector3d innovation = z - hx;
+            // special case -> angle wrap
+            innovation(2) = angleDiff(z(2), hx(2));
 
-            pose = pose.inverse().eval();
-
-            if(!initialized_) {
-                initial_pose_ = pose;
-                initial_pose_inv_ = pose.inverse();
-                initial_pose_yaw_ = yaw_correction;
-
-                initialized_ = true;
-
-            } else {
-                Eigen::Matrix3d rel_pose = initial_pose_inv_ * pose;
-                double yaw = yaw_correction - initial_pose_yaw_;
-
-                Eigen::Vector3d p = rel_pose.col(2);
-
-                Eigen::Vector3d z(p(0), p(1), -yaw);
-                Eigen::Vector3d hx = mu;
-
-                Eigen::Matrix3d H = I;
-
-                Eigen::Matrix3d K = P * H.transpose() * (H * P * H.transpose() + Q_abs).inverse();
-
-                mu = mu + K * (z - hx);
-                P = (I - K * H) * P;
-            }
+            mu = mu + K * innovation;
+            P = (I - K * H) * P;
         }
     }
 }
