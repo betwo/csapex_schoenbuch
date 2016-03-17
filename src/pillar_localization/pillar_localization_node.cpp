@@ -125,7 +125,7 @@ public:
     }
 
 private:
-    PillarLocalization localization_;
+    schoenbuch::PillarLocalization localization_;
 
 private:
     ros::NodeHandle nh_;

@@ -9,12 +9,17 @@
 struct EKF {
     EKF();
 
+    void reset();
+
     void setPillars(const std::vector<Pillar>& pillars);
 
     void predict(const Eigen::Vector3d &delta,
                  double v, double omega, double dt);
 
     void correct(const std::vector<Pillar> &z);
+    void correctLandmark(const std::vector<Pillar> &z);
+    bool correctAbsolute(const std::vector<Pillar> &z, bool fix = false);
+
 
     Eigen::Vector3d mu;
     Eigen::Matrix3d P;
@@ -41,11 +46,9 @@ struct EKF {
     Eigen::Matrix3d initial_pose_inv_;
     double initial_pose_yaw_;
 
-private:
-    void correctLandmark(const std::vector<Pillar> &z);
-//    void correctLandmarkOld(const std::vector<Pillar> &z);
-    void correctAbsolute(const std::vector<Pillar> &z);
 
+private:
+    void updateMeasurement(const std::vector<Pillar>& z);
 };
 
 #endif // EKF_H

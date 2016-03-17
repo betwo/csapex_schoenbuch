@@ -13,7 +13,7 @@
 #include <csapex_ros/ros_message_conversion.h>
 
 /// COMPONENT
-#include "pillar_localization/pillar_extractor.h"
+#include "pillar_localization/pillar_localization.h"
 
 /// SYSTEM
 #include <tf/tf.h>
@@ -37,7 +37,7 @@ class PillarLocalization : public Node
 {
 public:
     PillarLocalization()
-        : init_(false), has_start_pose_(false)
+        : has_start_pose_(false)
     {
 
     }
@@ -45,7 +45,7 @@ public:
     void setup(csapex::NodeModifier& modifier) override
     {
         in_ = modifier.addInput<PointCloudMessage>("Cloud");
-        input_indices_ = modifier.addInput<GenericVectorMessage, pcl::PointIndices>("clusters");
+        input_odom_ = modifier.addOptionalInput<nav_msgs::Odometry>("Odometry");
 
         out_ = modifier.addOutput<TransformMessage>("Pose");
         out_rel_ = modifier.addOutput<TransformMessage>("Pose (relative)");
@@ -53,16 +53,28 @@ public:
 
     void setupParameters(csapex::Parameterizable& params) override
     {
-        params.addParameter(param::ParameterFactory::declareRange("radius", 0.01, 1.0, 0.20, 0.001), radius_);
-        params.addParameter(param::ParameterFactory::declareRange("threshold", 0.0, 1.0, 0.10, 0.001), threshold_);
-        params.addParameter(param::ParameterFactory::declareRange("min pts", 1, 100, 4, 1), min_pts_);
+        params.addParameter(param::ParameterFactory::declareRange("radius", 0.001, 1.0, 0.055, 0.001),
+                            localization_.pillar_extractor_.radius_);
+        params.addParameter(param::ParameterFactory::declareRange("threshold", 0.0, 1.0, 0.25, 0.001),
+                            localization_.ekf_.dist_threshold_);
+        params.addParameter(param::ParameterFactory::declareRange("min pts", 1, 100, 4, 1),
+                            localization_.pillar_extractor_.min_pts_);
+        params.addParameter(param::ParameterFactory::declareRange("max_range", 0.0, 100.0, 15.0, 0.1),
+                            localization_.pillar_extractor_.max_range_);
+        params.addParameter(param::ParameterFactory::declareRange("min_intensity", 0, 1024, 150, 1),
+                            localization_.pillar_extractor_.min_intensity_);
+        params.addParameter(param::ParameterFactory::declareRange("min_cluster_size", 1, 100, 5, 1),
+                            localization_.pillar_extractor_.min_cluster_size_);
+        params.addParameter(param::ParameterFactory::declareRange("cluster_tolerance", 0.0, 1.0, 0.7, 0.01),
+                            localization_.pillar_extractor_.cluster_tolerance_);
 
         params.addParameter(param::ParameterFactory::declareTrigger("reset"), [this](param::Parameter*) {
             reset();
         });
-        params.addParameter(param::ParameterFactory::declareRange("distance/1", 0.01, 20.0, 0.05, 0.001), dist_1_);
-        params.addParameter(param::ParameterFactory::declareRange("distance/2", 0.01, 20.0, 0.05, 0.001), dist_2_);
-        params.addParameter(param::ParameterFactory::declareRange("distance/3", 0.01, 20.0, 0.05, 0.001), dist_3_);
+
+        localization_.fixed_frame_ = "/pillars";
+
+        localization_.init_steps_ = 10;
     }
 
     void process()
@@ -74,10 +86,9 @@ public:
 
     void reset()
     {
-        init_ = false;
-        has_start_pose_ = false;
+        localization_.reset();
 
-        last_stamp_ = 0;
+        has_start_pose_ = false;
     }
 
     template <class PointT>
@@ -89,182 +100,55 @@ public:
 
     void inputCloudImpl(typename pcl::PointCloud<pcl::PointXYZI>::ConstPtr cloud)
     {
-        auto current_stamp = cloud->header.stamp;
-        if(last_stamp_ == 0) {
-            last_stamp_ = current_stamp;
+        bool success = false;
+        if(msg::hasMessage(input_odom_)) {
+            auto odom = msg::getMessage<nav_msgs::Odometry>(input_odom_);
+            localization_.applyOdometry(*odom);
+            localization_.applyMeasurement(cloud);
+
+            success = true;
+
+        } else {
+            success = localization_.fixPosition(cloud);
+        }
+
+        if(!success) {
             return;
         }
 
-        last_stamp_ = current_stamp;
+        tf::Transform pose = localization_.getPose();
 
-        std::vector<Pillar> pillars = pillar_extractor_.findPillars(cloud);
+        TransformMessage::Ptr result = std::make_shared<TransformMessage>("/pillars", "/base_link");
+        result->value = pose;
+        result->stamp_micro_seconds = cloud->header.stamp;
+        result->frame_id = "/pillars";
 
-        std::vector<pcl::PointIndices> clusters = *msg::getMessage<GenericVectorMessage, pcl::PointIndices>(input_indices_);
+        msg::publish(out_, result);
 
-        std::vector<std::pair<int, tf::Vector3>> pillar_candidates;
-
-        for(const pcl::PointIndices& indices_msg : clusters) {
-            if((int) indices_msg.indices.size() < min_pts_) {
-                continue;
-            }
-
-            double angle = 0;
-            double dist_sqr = std::numeric_limits<double>::infinity();
-
-            for(int i : indices_msg.indices) {
-                const pcl::PointXYZI& pt = cloud->points[i];
-
-                double d_sqr = (pt.x * pt.x + pt.y * pt.y/* + pt.z * pt.z*/);
-                if(d_sqr < dist_sqr) {
-                    dist_sqr = d_sqr;
-                    angle = std::atan2(pt.y, pt.x);
-                }
-
-            }
-
-            if(std::isfinite(dist_sqr)) {
-                double r = std::sqrt(dist_sqr) + radius_;
-
-                tf::Vector3 centre(std::cos(angle) * r,
-                                   std::sin(angle) * r,
-                                   0.0);
-
-                pillar_candidates.push_back(std::make_pair(indices_msg.indices.size(), centre));
-            }
+        if(!has_start_pose_) {
+            start_pose_ = pose;
+            has_start_pose_ = true;
         }
 
-        std::sort(pillar_candidates.begin(), pillar_candidates.end(), std::greater<std::pair<int,tf::Vector3>>());
+        TransformMessage::Ptr result_rel = std::make_shared<TransformMessage>("/pillars", "/base_link");
+        *result_rel = *result;
 
+        result_rel->value = pose * start_pose_.inverse();
 
-        if(!init_) {
-            if(pillar_candidates.size() != 3) {
-                awarn << "cannot initialize, need exactly 3 pillar candiates" << std::endl;
-                return;
-            }
-
-            pillar_a = pillar_candidates[0].second;
-            pillar_b = pillar_candidates[1].second;
-            pillar_c = pillar_candidates[2].second;
-
-            tf::Vector3 ab = pillar_b - pillar_a;
-            tf::Vector3 ac = pillar_c - pillar_a;
-            tf::Vector3 bc = pillar_c - pillar_b;
-
-            dist_1_ = (ac).length();
-            dist_2_ = (ab).length();
-            dist_3_ = (bc).length();
-
-            setParameter("distance/1", dist_1_);
-            setParameter("distance/2", dist_2_);
-            setParameter("distance/3", dist_3_);
-
-            init_ = true;
-
-            ainfo << "initialization done" << std::endl;
-        }
-
-        if(pillar_candidates.size() >= 3) {
-            tf::Vector3 a = pillar_candidates[0].second;
-            tf::Vector3 b = pillar_candidates[1].second;
-            tf::Vector3 c = pillar_candidates[2].second;
-
-            tf::Vector3 ab = b - a;
-            tf::Vector3 ac = c - a;
-            tf::Vector3 bc = c - b;
-
-            double d_ac = (ac).length();
-            double d_ab = (ab).length();
-            double d_bc = (bc).length();
-
-            double mind = std::min(d_ac, std::min(d_ab, d_bc));
-
-            tf::Vector3 anchor;
-            tf::Vector3 lever;
-            if(d_ab == mind) {
-                anchor = c;
-                lever = (d_ac < d_bc) ? a : b;
-            } else if(d_ac == mind) {
-                anchor = b;
-                lever = (d_ab < d_bc) ? a : c;
-            } else {
-                anchor = a;
-                lever = (d_ab < d_ac) ? b : c;
-            }
-
-            std::vector<double> dists_meas { d_ac, d_ab, d_bc };
-            std::vector<double> dists_ref {dist_1_, dist_2_, dist_3_ };
-
-            std::sort(dists_meas.begin(), dists_meas.end());
-            std::sort(dists_ref.begin(), dists_ref.end());
-
-            double max_delta = 0;
-            for(std::size_t i = 0; i < 3; ++i) {
-                double delta = std::abs(dists_meas[i] - dists_ref[i]);
-                if(delta > max_delta) {
-                    max_delta = delta;
-                }
-            }
-
-            if(max_delta < threshold_) {
-                tf::Vector3 base_line = lever - anchor;
-                double yaw_correction = std::atan2(base_line.y(), base_line.x());
-
-                tf::Vector3 origin(anchor.x(), anchor.y(), 0);
-                tf::Quaternion q = tf::createQuaternionFromYaw(yaw_correction);
-                tf::Transform pose(q, origin);// tf::quatRotate(q, origin));
-
-                //correct(a.length(), b.length(), c.length());
-
-                TransformMessage::Ptr result = std::make_shared<TransformMessage>("/pillars", "/base_link");
-                result->value = pose;
-
-                msg::publish(out_, result);
-
-                if(!has_start_pose_) {
-                    start_pose_ = pose;
-                    has_start_pose_ = true;
-                }
-
-                TransformMessage::Ptr result_rel = std::make_shared<TransformMessage>("/pillars", "/base_link");
-                result_rel->value = pose * start_pose_.inverse();
-
-                msg::publish(out_rel_, result_rel);
-
-            }
-        }
+        msg::publish(out_rel_, result_rel);
     }
 
 private:
-
-private:
     Input* in_;
-    Input* input_indices_;
+    Input* input_odom_;
 
     Output* out_;
     Output* out_rel_;
 
-    PillarExtractor pillar_extractor_;
-
-    bool init_;
-
-    int min_pts_;
-
-    double radius_;
-    double threshold_;
-
-
-    tf::Vector3 pillar_a;
-    tf::Vector3 pillar_b;
-    tf::Vector3 pillar_c;
-
-    double dist_1_;
-    double dist_2_;
-    double dist_3_;
-
-    uint64_t last_stamp_;
-
     bool has_start_pose_;
-    tf::Transform start_pose_;
+    tf::Pose start_pose_;
+
+    schoenbuch::PillarLocalization localization_;
 };
 
 

@@ -10,6 +10,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <tf/tf.h>
 
+using namespace schoenbuch;
 
 PillarLocalization::PillarLocalization()
     : init_step_(0), init_steps_(0), init_(false)
@@ -17,14 +18,24 @@ PillarLocalization::PillarLocalization()
 
 }
 
-void PillarLocalization::applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input)
+void PillarLocalization::reset()
+{
+    init_step_ = 0;
+    init_ = false;
+
+    init_set_.clear();
+
+    ekf_.reset();
+}
+
+bool PillarLocalization::applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input, bool only_absolute)
 {
     std::vector<Pillar> pillars = pillar_extractor_.findPillars(input);
 
     if(!init_) {
         if(pillars.size() != 3) {
             ROS_WARN("cannot initialize, need exactly 3 pillar candiates");
-            return;
+            return false;
         }
 
         init_set_.push_back(pillars);
@@ -32,7 +43,7 @@ void PillarLocalization::applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>:
 
         if(init_step_ <= init_steps_) {
             ROS_INFO_STREAM("initialization: " << (init_step_ / (double) init_steps_ * 100.0) << " %");
-            return;
+            return false;
         }
 
         // calculate mean distances
@@ -128,11 +139,37 @@ void PillarLocalization::applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>:
 
     ROS_INFO_STREAM(pillars.size() << " pillar candidates");
 
+    bool success = false;
+
     if(pillars.size() > 0) {
-        ekf_.correct(pillars);
+        if(only_absolute) {
+            if(pillars.size() == 3) {
+                success = ekf_.correctAbsolute(pillars, true);
+            }
+        } else {
+            ekf_.correct(pillars);
+            success = true;
+        }
+
+        updatePose(last_stamp_);
 
         last_stamp_ = ros::Time();
     }
+
+    return success;
+}
+
+void PillarLocalization::updatePose(ros::Time current_stamp)
+{
+    tf::Vector3 origin(ekf_.mu(0), ekf_.mu(1), 0);
+    tf::Quaternion q = tf::createQuaternionFromYaw(ekf_.mu(2));
+    pose_ = tf::StampedTransform(tf::Transform(q, origin).inverse(),
+                              current_stamp, "/velodyne", fixed_frame_);
+}
+
+bool PillarLocalization::fixPosition(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input)
+{
+    return applyMeasurement(input, true);
 }
 
 void PillarLocalization::applyOdometry(const nav_msgs::Odometry &odom)
@@ -162,10 +199,7 @@ void PillarLocalization::applyOdometry(const nav_msgs::Odometry &odom)
         ekf_.predict(delta, odom.twist.twist.linear.x, odom.twist.twist.angular.z, dt);
 
 
-        tf::Vector3 origin(ekf_.mu(0), ekf_.mu(1), 0);
-        tf::Quaternion q = tf::createQuaternionFromYaw(ekf_.mu(2));
-        pose_ = tf::StampedTransform(tf::Transform(q, origin).inverse(),
-                                  current_stamp, "/velodyne", fixed_frame_);
+        updatePose(current_stamp);
     }
 }
 

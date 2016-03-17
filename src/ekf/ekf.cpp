@@ -27,11 +27,7 @@ double normalizeAngle(const double a)
 EKF::EKF()
     : initialized_(false)
 {
-    mu << 0, 0, 0;
-
     I = Eigen::Matrix3d::Identity();
-
-    P = I * pow(1.0, 2);
 
     R = Eigen::Matrix3d::Identity();
     R(0,0) = pow(0.15, 2);
@@ -51,6 +47,16 @@ EKF::EKF()
 
 
     dist_threshold_ = 1.0;
+
+    reset();
+}
+
+void EKF::reset()
+{
+    initialized_ = false;
+
+    mu << 0, 0, 0;
+    P = I * pow(1.0, 2);
 }
 
 void EKF::setPillars(const std::vector<Pillar>& pillars)
@@ -113,6 +119,7 @@ void EKF::predict(const Eigen::Vector3d& delta, double _v, double _omega, double
     mu(2) = normalizeAngle(mu(2));
 }
 
+
 void EKF::correct(const std::vector<Pillar>& z)
 {
     if(z.size() >= 3) {
@@ -120,7 +127,10 @@ void EKF::correct(const std::vector<Pillar>& z)
     } else {
         correctLandmark(z);
     }
+}
 
+void EKF::updateMeasurement(const std::vector<Pillar>& z)
+{
     meas_pillars_.clear();
 
     for(std::size_t i = 0; i < std::min((std::size_t) 3, z.size()); ++i) {
@@ -132,6 +142,8 @@ void EKF::correct(const std::vector<Pillar>& z)
 
 void EKF::correctLandmark(const std::vector<Pillar>& z)
 {
+    updateMeasurement(z);
+
     std::size_t N = pillars_.size();
 
     std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix3d> > S(N);
@@ -197,8 +209,9 @@ void EKF::correctLandmark(const std::vector<Pillar>& z)
 
 }
 
-void EKF::correctAbsolute(const std::vector<Pillar>& z)
+bool EKF::correctAbsolute(const std::vector<Pillar>& z, bool fix)
 {
+    updateMeasurement(z);
     assert(z.size() >= 3);
 
     const Eigen::Vector3d& a = z[0].centre;
@@ -281,23 +294,32 @@ void EKF::correctAbsolute(const std::vector<Pillar>& z)
             double rel_yaw = yaw - initial_pose_yaw_;
 
             Eigen::Vector3d p = rel_pose.col(2);
-
             Eigen::Vector3d z(p(0), p(1), rel_yaw);
-            Eigen::Vector3d hx = mu;
 
-            Eigen::Matrix3d H = I;
+            if(fix) {
+                mu = z;
+                P = Q_abs;
 
-            Eigen::Matrix3d K = P * H.transpose() * (H * P * H.transpose() + Q_abs).inverse();
+            } else {
+                Eigen::Vector3d hx = mu;
 
-            Eigen::Vector3d innovation = z - hx;
-            // special case -> angle wrap
-            innovation(2) = angleDiff(z(2), hx(2));
+                Eigen::Matrix3d H = I;
 
-            mu = mu + K * innovation;
-            mu(2) = normalizeAngle(mu(2));
+                Eigen::Matrix3d K = P * H.transpose() * (H * P * H.transpose() + Q_abs).inverse();
 
-            P = (I - K * H) * P;
+                Eigen::Vector3d innovation = z - hx;
+                // special case -> angle wrap
+                innovation(2) = angleDiff(z(2), hx(2));
+
+                mu = mu + K * innovation;
+                mu(2) = normalizeAngle(mu(2));
+
+                P = (I - K * H) * P;
+            }
         }
-    }
-}
 
+        return true;
+    }
+
+    return false;
+}
