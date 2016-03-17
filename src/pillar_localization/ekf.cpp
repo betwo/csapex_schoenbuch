@@ -87,6 +87,14 @@ void EKF::predict(const Eigen::Vector3d& delta, double _v, double _omega, double
     double omega = f * _omega;
     double v = f * _v;
 
+    if(std::abs(v) < 1e-10 && std::abs(omega) < 1e-10) {
+        return;
+    }
+
+    if(omega == 0.0) {
+        omega = 1e-10;
+    }
+
     Eigen::Vector3d g;
     //    g <<    v / omega * (sin(theta + omega * dt) - sin(theta)),
     //            v / omega * (cos(theta) - cos(theta + omega * dt)),
