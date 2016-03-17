@@ -1,7 +1,7 @@
 #ifndef EKF_H
 #define EKF_H
 
-#include "pillar.h"
+#include "pillar_localization/pillar.h"
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <vector>

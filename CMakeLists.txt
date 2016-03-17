@@ -43,6 +43,7 @@ catkin_package(
 )
 
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
   ${csapex_INCLUDE_DIRS}
@@ -52,14 +53,19 @@ include_directories(
   ${csapex_ros_INCLUDE_DIRS}
 )
 
-message(STATUS "FLAGS: ${CMAKE_CXX_FLAGS}")
+# headers
+file(GLOB_RECURSE files "include/*")
+add_custom_target(headers SOURCES ${files})
 
+# don't use c++ 11 -> segfaults...
 unset(CMAKE_CXX_FLAGS)
 
 add_library(schoenbuch
-    src/pillar_localization/ekf.cpp
     src/pillar_localization/pillar.cpp
     src/pillar_localization/pillar_extractor.cpp
+    src/pillar_localization/pillar_localization.cpp
+
+    src/ekf/ekf.cpp
 )
 target_link_libraries(schoenbuch
     ${PCL_COMMON_LIBRARIES}

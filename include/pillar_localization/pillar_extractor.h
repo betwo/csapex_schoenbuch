@@ -6,9 +6,10 @@
 
 /// SYSTEM
 #include <tf/tf.h>
-#include <sensor_msgs/PointCloud2.h>
 #include <memory>
 #include <Eigen/Core>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 
 class PillarExtractorImpl;
 
@@ -18,7 +19,7 @@ public:
     PillarExtractor();
     ~PillarExtractor();
 
-    std::vector<Pillar> findPillars(const sensor_msgs::PointCloud2::ConstPtr& input);
+    std::vector<Pillar> findPillars(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input);
 
 public:
     int min_pts_;

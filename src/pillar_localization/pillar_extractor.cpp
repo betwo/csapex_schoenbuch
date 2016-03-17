@@ -1,8 +1,7 @@
 /// HEADER
-#include "pillar_extractor.h"
+#include "pillar_localization/pillar_extractor.h"
 
 /// SYSTEM
-#include <pcl_conversions/pcl_conversions.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/crop_box.h>
@@ -20,7 +19,7 @@ struct PillarExtractorImpl {
 
     }
 
-    std::vector<Pillar> findPillars(const sensor_msgs::PointCloud2::ConstPtr& input);
+    std::vector<Pillar> findPillars(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input);
 
     void filterPointCloud(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& full_cloud,
                           pcl::PointCloud<pcl::PointXYZI>::Ptr& cloud,
@@ -45,18 +44,13 @@ PillarExtractor::~PillarExtractor()
     delete pimpl;
 }
 
-std::vector<Pillar> PillarExtractor::findPillars(const sensor_msgs::PointCloud2::ConstPtr& input)
+std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& full_cloud)
 {
-    return pimpl->findPillars(input);
+    return pimpl->findPillars(full_cloud);
 }
 
-std::vector<Pillar> PillarExtractorImpl::findPillars(const sensor_msgs::PointCloud2::ConstPtr& input)
+std::vector<Pillar> PillarExtractorImpl::findPillars(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& full_cloud)
 {
-    pcl::PCLPointCloud2 pcl_pc2;
-    pcl_conversions::toPCL(*input, pcl_pc2);
-    pcl::PointCloud<pcl::PointXYZI>::Ptr full_cloud(new pcl::PointCloud<pcl::PointXYZI>);
-    pcl::fromPCLPointCloud2(pcl_pc2,*full_cloud);
-
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud;
     std::vector<pcl::PointIndices> cluster_indices;
 

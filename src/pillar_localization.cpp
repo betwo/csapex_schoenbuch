@@ -1,4 +1,4 @@
-/// COMPONENT
+/// PROJECT
 #include <csapex/model/node.h>
 #include <csapex/msg/io.h>
 #include <csapex/param/parameter_factory.h>
@@ -11,6 +11,9 @@
 #include <csapex/msg/generic_pointer_message.hpp>
 #include <csapex_ros/yaml_io.hpp>
 #include <csapex_ros/ros_message_conversion.h>
+
+/// COMPONENT
+#include "pillar_localization/pillar_extractor.h"
 
 /// SYSTEM
 #include <tf/tf.h>
@@ -92,10 +95,9 @@ public:
             return;
         }
 
-        int dt_msec = current_stamp - last_stamp_;
         last_stamp_ = current_stamp;
 
-        double dt = dt_msec / 1e6;
+        std::vector<Pillar> pillars = pillar_extractor_.findPillars(cloud);
 
         std::vector<pcl::PointIndices> clusters = *msg::getMessage<GenericVectorMessage, pcl::PointIndices>(input_indices_);
 
@@ -240,6 +242,8 @@ private:
 
     Output* out_;
     Output* out_rel_;
+
+    PillarExtractor pillar_extractor_;
 
     bool init_;
 
