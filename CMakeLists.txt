@@ -75,6 +75,7 @@ target_link_libraries(schoenbuch
 
 add_library(schoenbuch_node
     src/pillar_localization.cpp
+    src/object_detector.cpp
     src/param_estimator.cpp
     src/pose_difference.cpp
 )
