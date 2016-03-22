@@ -16,6 +16,8 @@
 #include <csapex/utility/interlude.hpp>
 
 /// SYSTEM
+#include <visualization_msgs/MarkerArray.h>
+#include <tf/tf.h>
 
 using namespace csapex::connection_types;
 
@@ -128,6 +130,7 @@ public:
         in_ = modifier.addInput<PointCloudMessage>("Cloud");
 
         out_ = modifier.addOutput<PointCloudMessage>("Clustered Cloud");
+        out_marker_ = modifier.addOutput<visualization_msgs::MarkerArray>("Markers");
     }
 
     void setupParameters(csapex::Parameterizable& params) override
@@ -157,6 +160,10 @@ public:
                             pillar_min_intensity_);
         params.addParameter(param::ParameterFactory::declareRange("pillar/min points", 0, 512, 32, 1),
                             pillar_min_points_);
+        params.addParameter(param::ParameterFactory::declareRange("pillar/radius", 0.001, 1.0, 0.055, 0.001),
+                            pillar_radius_);
+        params.addParameter(param::ParameterFactory::declareRange("pillar/radius threshold", 0.000, 1.0, 0.055, 0.001),
+                            pillar_radius_fuzzy_);
 
     }
 
@@ -349,50 +356,6 @@ public:
             }
         }
 
-        //        int d_col[] { 0, 0, -1, 1, -2, 2, -3, 3, -4, 4};
-        //        int d_row[] { 1, 2,  0, 0,  0, 0,  0, 0,  0, 0};
-
-        //        std::deque<Point*> Q;
-        //        for(Point& pt : points) {
-        //            if(pt.type & OBJECT) {
-        //                clusters.emplace_back();
-        //                pt.cluster = &clusters.back();
-        //                pt.cluster->id = clusters.size();
-        //                pt.cluster->pts.push_back(&pt);
-        //                Q.push_back(&pt);
-        //            }
-        //        }
-
-        //        while(!Q.empty()) {
-        //            Point* current = Q.front();
-        //            Q.pop_front();
-
-        //            for(std::size_t n = 0; n < 10; ++n) {
-        //                int nrow = current->row + d_row[n];
-        //                int ncol = (current->col + d_col[n] + cols) % cols;
-
-        //                double cluster_distance = d_col[n] != 0 ? cluster_distance_ring_ : cluster_distance_vertical_;
-
-        //                if(nrow >= 0 && nrow < rows) {
-        //                    Point* neighbor = &points.at(nrow * cols + ncol);
-        //                    double distance = std::abs(current->distance() - neighbor->distance());
-        //                    if(distance <= cluster_distance) {
-        //                        if(!(neighbor->type & OBJECT)) {
-        //                            neighbor->type |= OBJECT_FILL;
-        //                            neighbor->cluster = current->cluster;
-        //                            neighbor->cluster->pts.push_back(neighbor);
-        //                            Q.push_back(neighbor);
-
-        //                        } else if(current->cluster != neighbor->cluster) {
-        //                            current->cluster->merge(neighbor->cluster);
-        //                            neighbor->cluster = current->cluster;
-        //                        }
-        //                    }
-        //                }
-        //            }
-        //        }
-
-
         // filter intensity
         for(Cluster& c : clusters) {
             if(c.pts.size() < pillar_min_points_) {
@@ -440,19 +403,7 @@ public:
                 pt_out.y = pt.y;
                 pt_out.z = pt.z;
 
-                if(pt.type & OBSTACLE) {
-                    //                    pt_out.r = 255;
-                } else if(pt.type & OBJECT) {
-                    //                    pt_out.b = 255;
-                } else {
-                    //                    pt_out.g = 255;
-                }
-
-                if(false) {
-                    pt_out.r = std::min(1.f, pt.jump_distance / 10.f) * 255.f;
-                    pt_out.g = 255 - pt_out.r;
-                    pt_out.b = 0;
-                } else if(pt.cluster) {
+                if(pt.cluster) {
                     double r = 0, g = 0, b = 0;
                     color::fromCount(pt.cluster->id, r,g,b);
                     pt_out.r = r;
@@ -466,12 +417,185 @@ public:
         output_msg->value = labeled_cloud_ptr;
 
         msg::publish(out_, output_msg);
+
+
+        if(msg::isConnected(out_marker_)) {
+
+            visualization_msgs::Marker marker;
+            marker.header.frame_id = cloud.header.frame_id;
+            marker.header.stamp.fromNSec(cloud.header.stamp * 1e3);
+            marker.action = visualization_msgs::Marker::ADD;
+            marker.type = visualization_msgs::Marker::CYLINDER;
+            marker.ns = "pillars";
+            marker.color.r = 1.0;
+            marker.color.g = 1.0;
+            marker.color.b = 1.0;
+
+            marker.color.a = 0.7;
+
+            auto message = std::make_shared<visualization_msgs::MarkerArray>();
+            visualization_msgs::MarkerArray& marker_array = *message;
+
+            for(Cluster& c : clusters) {
+                if(c.empty()) {
+                    continue;
+                }
+
+                double r;
+                Eigen::Vector3d C, W;
+                double error = fitCylinder(c.pts, r, C, W);
+
+                if(error < 1e-5 &&
+                        r > pillar_radius_ - pillar_radius_fuzzy_ &&
+                        r < pillar_radius_ + pillar_radius_fuzzy_) {
+
+                    marker.pose.position.x = C(0);
+                    marker.pose.position.y = C(1);
+                    marker.pose.position.z = C(2);
+
+                    tf::Matrix3x3 base_T;
+                    tf::Vector3 z(W(0), W(1), W(2));
+                    tf::Vector3 x(1, 0, 0);
+                    tf::Vector3 y = z.cross(x);
+                    base_T[0] = x;
+                    base_T[1] = y;
+                    base_T[2] = z;
+
+                    //tf::Quaternion base(W(0),W(1),W(2),0);
+                    tf::Quaternion base;
+                    base_T.getRotation(base);
+                    tf::quaternionTFToMsg(base, marker.pose.orientation);
+
+                    marker.scale.x = r * 2;
+                    marker.scale.y = r * 2;
+                    marker.scale.z = 2.0;
+
+                    marker.id = id++;
+                    marker_array.markers.push_back(marker);
+                }
+            }
+
+            msg::publish(out_marker_, message);
+        }
+    }
+
+    double fitCylinder(const std::vector<Point*>& cluster,
+                       double& r, Eigen::Vector3d& C, Eigen::Vector3d& W)
+    {
+        std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> X;
+        std::size_t n = cluster.size();
+
+        X.reserve(n);
+
+        Eigen::Vector3d average = Eigen::Vector3d::Zero();
+        for(Point* pt : cluster) {
+            Eigen::Vector3d p;
+            p << pt->x, pt->y, pt->z;
+
+            X.push_back(p);
+
+            average += p;
+        }
+        average /= (double) n;
+        for(Eigen::Vector3d& pt : X) {
+            pt -= average;
+        }
+
+        double min_error = std::numeric_limits<double>::infinity();
+        double rsqr = 0.0;
+
+        int i_max = 64;
+        int j_max = 64;
+
+        for(int j = 0; j < j_max; ++j) {
+            double phi = M_PI_2 * j / (double) j_max;
+            double cos_phi = std::cos(phi);
+            double sin_phi = std::sin(phi);
+
+            for(int i = 0; i < i_max; ++i) {
+                double theta = 2 * M_PI * i / (double) i_max;
+                double cos_theta = std::cos(theta);
+                double sin_theta = std::sin(theta);
+
+                Eigen::Vector3d currentW(cos_theta * sin_phi, sin_theta * sin_phi, cos_phi);
+
+                Eigen::Vector3d currentC;
+                double current_rsqr;
+
+                double error = G(n, X, currentW, currentC, current_rsqr);
+
+                if(error < min_error) {
+                    min_error = error;
+                    W = currentW;
+                    C = currentC;
+                    rsqr = current_rsqr;
+                }
+            }
+        }
+
+        C += average;
+
+        r = std::sqrt(rsqr);
+
+        return min_error;
+    }
+
+    double G(std::size_t n,
+             const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& X,
+             const Eigen::Vector3d& W,
+             Eigen::Vector3d& PC,
+             double& rsqr)
+    {
+        Eigen::Matrix3d P = Eigen::Matrix3d::Identity() - W * W.transpose();
+        Eigen::Matrix3d S;
+        S << 0, -W(2), W(1),
+                0, -W(0), -W(1),
+                -W(1), W(0), 0;
+        Eigen::Matrix3d A = Eigen::Matrix3d::Zero();
+        Eigen::Vector3d B = Eigen::Vector3d::Zero();
+        std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> Y(n);
+        double averageSqrLength = 0;
+        std::vector<double> sqrLength(n);
+
+        for(std::size_t i = 0; i < n; ++i) {
+            Y[i] = P * X[i];
+            sqrLength[i] = Y[i].dot(Y[i]);
+
+            A += Y[i] * Y[i].transpose();
+            B += sqrLength[i] * Y[i];
+
+            averageSqrLength += sqrLength[i];
+        }
+
+        A /= (double) n;
+        B /= (double) n;
+
+        averageSqrLength /= n;
+
+        Eigen::Matrix3d  Ahat = -S * A * S;
+        PC = (Ahat * B) / (Ahat * A).trace();
+
+        double error = 0.0;
+        rsqr = 0.0;
+
+        for(std::size_t i = 0; i < n; ++i) {
+            double term = sqrLength[i] - averageSqrLength - 2 * Y[i].dot(PC);
+            error += term * term;
+            Eigen::Vector3d diff = PC - Y[i];
+            rsqr += diff.dot(diff);
+        }
+
+        error /= n;
+        rsqr /= n;
+
+        return error;
     }
 
 private:
     Input* in_;
 
     Output* out_;
+    Output* out_marker_;
 
 
     double curvature_threshold_;
@@ -489,6 +613,9 @@ private:
 
     double pillar_min_intensity_;
     int pillar_min_points_;
+
+    double pillar_radius_;
+    double pillar_radius_fuzzy_;
 };
 
 
