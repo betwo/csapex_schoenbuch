@@ -62,6 +62,8 @@ struct Point{
     float z;
     float intensity;
 
+    float jump_distance = 0.0f;
+
     int row;
     int col;
 
@@ -140,9 +142,9 @@ public:
                             vertical_angle_threshold_);
 
 
-        params.addParameter(param::ParameterFactory::declareRange("clustering/max distance on ring", 0.0, 1.0, 0.05, 0.01),
+        params.addParameter(param::ParameterFactory::declareRange("clustering/max distance on ring", 0.0, 0.1, 0.05, 0.001),
                             cluster_distance_ring_);
-        params.addParameter(param::ParameterFactory::declareRange("clustering/max distance vertically", 0.0, 1.0, 0.05, 0.01),
+        params.addParameter(param::ParameterFactory::declareRange("clustering/max distance vertically", 0.0, 0.1, 0.05, 0.001),
                             cluster_distance_vertical_);
         params.addParameter(param::ParameterFactory::declareRange("clustering/min cluster size", 0, 1024, 32, 1),
                             cluster_min_size_);
@@ -250,29 +252,39 @@ public:
             row_clusters.resize(rows);
 
             for(int row = 0; row < rows; ++row) {
-                Point* last = &points[row * cols + 0];
+                Point* last = nullptr;
                 clusters.emplace_back();
                 Cluster* current_cluster = &clusters.back();
+                row_clusters[row].reserve(cols);
                 row_clusters[row].push_back(current_cluster);
-                current_cluster->add(last);
 
-                for(int col = 1; col < cols; ++col) {
+                for(int col = 0; col < cols; ++col) {
                     Point& current = points[row * cols + col];
-                    double distance = std::abs(last->range() - current.range());
-                    last = &current;
+                    if(std::isnan(current.x)) continue;
 
-                    if(distance > cluster_distance_ring_) {
-                        if(current_cluster->pts.size() >= cluster_min_size_) {
-                            clusters.emplace_back();
-                            current_cluster = &clusters.back();
-                            row_clusters[row].push_back(current_cluster);
-                        } else {
-                            current_cluster->clear();
+                    if(last) {
+                        double jump_distance = std::abs(last->range() - current.range());
+                        //                        double jump_distance = last->distanceXYZ(current);
+
+                        current.jump_distance = jump_distance;
+
+                        if(jump_distance > cluster_distance_ring_) {
+                            // new cluster
+                            if(current_cluster->pts.size() >= cluster_min_size_) {
+                                clusters.emplace_back();
+                                current_cluster = &clusters.back();
+                                row_clusters[row].push_back(current_cluster);
+                            } else {
+                                current_cluster->clear();
+                            }
+                            current_cluster->col_start = col;
                         }
-                        current_cluster->col_start = col;
                     }
+
                     current_cluster->add(&current);
                     current_cluster->col_end = col;
+
+                    last = &current;
                 }
 
                 for(Cluster* c : row_clusters[row]) {
@@ -324,6 +336,14 @@ public:
                                 }
                             }
                         }
+
+                        for(auto it = row_clusters[row].begin(); it != row_clusters[row].end();) {
+                            if((*it)->empty()) {
+                                it = row_clusters[row].erase(it);
+                            } else {
+                                ++it;
+                            }
+                        }
                     }
                 }
             }
@@ -373,33 +393,22 @@ public:
         //        }
 
 
+        // filter intensity
         for(Cluster& c : clusters) {
             if(c.pts.size() < pillar_min_points_) {
                 c.clear();
-            }
-        }
-
-        // filter intensity
-        for(Cluster& c : clusters) {
-            double avg_intensity = 0;
-            for(Point* p : c.pts) {
-                avg_intensity += p->intensity;
-            }
-            avg_intensity /= c.pts.size();
-
-
-            double avg_high_intensity = 0;
-            int count_high_intensity = 0;
-            for(Point* p : c.pts) {
-                if(p->intensity > avg_intensity) {
-                    avg_high_intensity += p->intensity;
-                    ++count_high_intensity;
+            } else {
+                std::vector<float> intensities(c.pts.size(), 0.0f);
+                std::size_t i = 0;
+                for(Point* p : c.pts) {
+                    intensities[i++] = p->intensity;
                 }
-            }
-            avg_high_intensity /= count_high_intensity;
 
-            if(avg_high_intensity < pillar_min_intensity_) {
-                c.clear();
+                std::sort(intensities.begin(), intensities.end());
+
+                if(intensities.back() < pillar_min_intensity_) {
+                    c.clear();
+                }
             }
         }
 
@@ -439,7 +448,11 @@ public:
                     //                    pt_out.g = 255;
                 }
 
-                if(pt.cluster) {
+                if(false) {
+                    pt_out.r = std::min(1.f, pt.jump_distance / 10.f) * 255.f;
+                    pt_out.g = 255 - pt_out.r;
+                    pt_out.b = 0;
+                } else if(pt.cluster) {
                     double r = 0, g = 0, b = 0;
                     color::fromCount(pt.cluster->id, r,g,b);
                     pt_out.r = r;
