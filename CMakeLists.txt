@@ -74,6 +74,9 @@ target_link_libraries(schoenbuch
 )
 
 add_library(schoenbuch_node
+    src/data/point.cpp
+    src/data/cluster.cpp
+
     src/pillar_localization.cpp
     src/object_detector.cpp
     src/param_estimator.cpp

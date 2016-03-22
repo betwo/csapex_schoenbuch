@@ -1,3 +1,7 @@
+/// COMPONENT
+#include "data/point.h"
+#include "data/cluster.h"
+
 /// PROJECT
 #include <csapex/model/node.h>
 #include <csapex/msg/io.h>
@@ -31,90 +35,6 @@ namespace impl {
 template <class PointT>
 struct Impl;
 
-}
-
-
-struct Point;
-
-struct Cluster
-{
-    int id = 0;
-    int col_start = 0;
-    int col_end = 0;
-
-    std::vector<Point*> pts;
-
-    void merge(Cluster* other);
-    void add(Point* p);
-
-    bool empty();
-
-    void clear();
-};
-
-const int OBSTACLE = 1;
-const int FREE = 2;
-const int OBJECT = 4;
-const int FILL = 16;
-const int OBJECT_FILL = OBJECT + FILL;
-
-struct Point{
-    float x;
-    float y;
-    float z;
-    float intensity;
-
-    float jump_distance = 0.0f;
-
-    int row;
-    int col;
-
-    int type = 0;
-
-    Cluster* cluster = nullptr;
-
-    double distanceXYZ(const Point& other) {
-        double dx = x - other.x;
-        double dy = y - other.y;
-        double dz = z - other.z;
-        return std::sqrt(dx*dx + dy*dy + dz*dz);
-    }
-    double distanceXY(const Point& other) {
-        double dx = x - other.x;
-        double dy = y - other.y;
-        return std::sqrt(dx*dx + dy*dy);
-    }
-    double range() {
-        return std::sqrt(x*x + y*y + z*z);
-    }
-};
-
-bool Cluster::empty()
-{
-    return pts.empty();
-}
-
-void Cluster::add(Point *p)
-{
-    pts.push_back(p);
-    p->cluster = this;
-}
-
-void Cluster::merge(Cluster* other)
-{
-    for(Point* p : other->pts) {
-        pts.push_back(p);
-        p->cluster = this;
-    }
-    other->pts.clear();
-}
-
-void Cluster::clear()
-{
-    for(Point* p : pts) {
-        p->cluster = nullptr;
-    }
-    pts.clear();
 }
 
 class ObjectDetector : public Node
@@ -197,9 +117,8 @@ public:
         std::vector<Point> points;
         points.resize(cloud.size());
 
-        // CLASSIFICATION
         {
-            NAMED_INTERLUDE(classification);
+            NAMED_INTERLUDE(convert);
             for(int col = 0; col < cols; ++col) {
                 for(int row = 0; row < rows; ++row) {
                     const pcl::PointXYZI& pt = cloud.at(col, row);
@@ -212,38 +131,6 @@ public:
 
                     pt_out.row = row;
                     pt_out.col = col;
-
-                    if(row > 0 && row < rows - 1) {
-                        const pcl::PointXYZI& prev = cloud.at(col, row - 1);
-                        const pcl::PointXYZI& next = cloud.at(col, row + 1);
-
-                        Eigen::Vector3d x = convert(prev);
-                        Eigen::Vector3d y = convert(pt);
-                        Eigen::Vector3d z = convert(next);
-
-                        double A = 0.5 * (((z-x).cross(y-x)).norm());
-                        double curv = 4 * A / ((x-y).norm() * (y-z).norm() * (z-x).norm());
-
-                        if(A > curvature_min_area_ && curv > curvature_threshold_) {
-                            pt_out.type |= OBSTACLE;
-
-                        } else {
-
-                            Eigen::Vector3d a = z - x;
-                            Eigen::Vector3d z_proj = z;
-                            z_proj(2) = x(2);
-                            Eigen::Vector3d b = z_proj - x;
-                            double angle = std::acos(a.dot(b) / (a.norm() * b.norm()));
-
-                            if(std::abs(angle) > vertical_angle_threshold_) {
-                                pt_out.type |= OBJECT;
-
-                            } else {
-                                pt_out.type |= FREE;
-                            }
-
-                        }
-                    }
                 }
             }
         }
