@@ -29,12 +29,15 @@ public:
 
         localization_.ekf_.dist_threshold_ = pnh_.param("threshold", 0.25);
 
-        localization_.pillar_extractor_.radius_ = pnh_.param("radius", 0.055);
-        localization_.pillar_extractor_.min_pts_ = pnh_.param("min_pts", 5);
-        localization_.pillar_extractor_.max_range_  = pnh_.param("max_range", 15.0);
-        localization_.pillar_extractor_.min_intensity_ = pnh_.param("min_intensity", 150);
-        localization_.pillar_extractor_.min_cluster_size_= pnh_.param("min_cluster_size", 5);
-        localization_.pillar_extractor_.cluster_tolerance_ = pnh_.param("cluster_tolerance", 0.7);
+        localization_.pillar_extractor_.pillar_radius_ = pnh_.param("radius", 0.055);
+        localization_.pillar_extractor_.pillar_radius_fuzzy_ = pnh_.param("radius_threshold", 0.055);
+        localization_.pillar_extractor_.pillar_min_points_ = pnh_.param("min_pts", 5);
+        localization_.pillar_extractor_.cluster_max_diameter_  = pnh_.param("cluster_max", 2.0);
+        localization_.pillar_extractor_.pillar_min_intensity_ = pnh_.param("min_intensity", 150);
+        localization_.pillar_extractor_.cluster_min_size_= pnh_.param("min_cluster_size", 5);
+        localization_.pillar_extractor_.cluster_max_size_= pnh_.param("max_cluster_size", 5);
+        localization_.pillar_extractor_.cluster_distance_ring_ = pnh_.param("cluster_tolerance_ring", 0.7);
+        localization_.pillar_extractor_.cluster_distance_vertical_ = pnh_.param("cluster_tolerance_vertical", 0.7);
     }
 
     void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& input)
@@ -83,8 +86,8 @@ public:
         marker.ns = "pillar";
         marker.color.r = 0.0;
         marker.color.g = 1.0;
-        marker.scale.x = 2* localization_.pillar_extractor_.radius_;
-        marker.scale.y = 2* localization_.pillar_extractor_.radius_;
+        marker.scale.x = 2* localization_.pillar_extractor_.pillar_radius_;
+        marker.scale.y = 2* localization_.pillar_extractor_.pillar_radius_;
         marker.scale.z = 1.0;
 
         for(std::size_t i = 0; i < localization_.ekf_.pillars_.size(); ++i) {
@@ -98,8 +101,8 @@ public:
         }
 
         // MEASUREMENT
-        marker.scale.x = localization_.pillar_extractor_.radius_;
-        marker.scale.y = localization_.pillar_extractor_.radius_;
+        marker.scale.x = localization_.pillar_extractor_.pillar_radius_;
+        marker.scale.y = localization_.pillar_extractor_.pillar_radius_;
         marker.scale.z = 2.0;
 
         marker.color.b = 1.0;

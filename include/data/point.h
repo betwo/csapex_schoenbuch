@@ -5,19 +5,21 @@ class Cluster;
 
 struct Point
 {
+    Point();
+
     float x;
     float y;
     float z;
     float intensity;
 
-    float jump_distance = 0.0f;
+    float jump_distance;
 
     int row;
     int col;
 
-    int type = 0;
+    int type ;
 
-    Cluster* cluster = nullptr;
+    Cluster* cluster;
 
     double distanceXYZ(const Point& other);
     double distanceXY(const Point& other);

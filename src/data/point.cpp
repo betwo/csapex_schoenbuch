@@ -4,6 +4,12 @@
 /// SYSTEM
 #include <cmath>
 
+Point::Point()
+    : jump_distance(0.0f), type(0), cluster(0)
+{
+
+}
+
 double Point::distanceXYZ(const Point& other)
 {
     double dx = x - other.x;

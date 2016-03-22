@@ -7,9 +7,11 @@ struct Point;
 
 struct Cluster
 {
-    int id = 0;
-    int col_start = 0;
-    int col_end = 0;
+    Cluster();
+
+    int id;
+    int col_start;
+    int col_end;
 
     std::vector<Point*> pts;
 

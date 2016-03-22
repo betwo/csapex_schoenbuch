@@ -18,7 +18,9 @@ public:
 
 public:
     Eigen::Vector3d centre;
+    Eigen::Vector3d up;
     int points;
+    double measured_radius;
 };
 
 #endif // PILLAR_H

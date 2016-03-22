@@ -58,9 +58,14 @@ file(GLOB_RECURSE files "include/*")
 add_custom_target(headers SOURCES ${files})
 
 # don't use c++ 11 -> segfaults...
+message("${CMAKE_CXX_FLAGS}")
 unset(CMAKE_CXX_FLAGS)
+message("${CMAKE_CXX_FLAGS}")
 
 add_library(schoenbuch
+    src/data/point.cpp
+    src/data/cluster.cpp
+
     src/pillar_localization/pillar.cpp
     src/pillar_localization/pillar_extractor.cpp
     src/pillar_localization/pillar_localization.cpp
@@ -74,9 +79,6 @@ target_link_libraries(schoenbuch
 )
 
 add_library(schoenbuch_node
-    src/data/point.cpp
-    src/data/cluster.cpp
-
     src/pillar_localization.cpp
     src/object_detector.cpp
     src/param_estimator.cpp

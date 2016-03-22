@@ -9,144 +9,324 @@
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/segmentation/extract_clusters.h>
 
-struct PillarExtractorImpl {
-    PillarExtractorImpl(PillarExtractor* parent)
-        : parent_(parent)
-    {
-    }
-
-    ~PillarExtractorImpl() {
-
-    }
-
-    std::vector<Pillar> findPillars(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input);
-
-    void filterPointCloud(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& full_cloud,
-                          pcl::PointCloud<pcl::PointXYZI>::Ptr& cloud,
-                          std::vector<pcl::PointIndices>& cluster_indices);
-
-    void findPillars(std::vector<pcl::PointIndices>& cluster_indices,
-                     pcl::PointCloud<pcl::PointXYZI>::Ptr& cloud,
-                     std::vector<Pillar>& pillar_candidates);
-
-    PillarExtractor* parent_;
-};
-
 
 PillarExtractor::PillarExtractor()
-    : pimpl(new PillarExtractorImpl(this))
 {
 
 }
 
 PillarExtractor::~PillarExtractor()
 {
-    delete pimpl;
 }
 
-std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& full_cloud)
+std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& c)
 {
-    return pimpl->findPillars(full_cloud);
-}
+    const pcl::PointCloud<pcl::PointXYZI>& cloud = *c;
+    int cols = cloud.width;
+    int rows = cloud.height;
 
-std::vector<Pillar> PillarExtractorImpl::findPillars(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& full_cloud)
-{
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud;
-    std::vector<pcl::PointIndices> cluster_indices;
+    points.clear();
+    clusters.clear();
+    row_clusters.clear();
 
-    filterPointCloud(full_cloud, cloud, cluster_indices);
+    points.resize(cloud.size());
 
-    std::vector<Pillar> pillar_candidates;
+    {
+        for(int col = 0; col < cols; ++col) {
+            for(int row = 0; row < rows; ++row) {
+                const pcl::PointXYZI& pt = cloud.at(col, row);
+                Point& pt_out = points.at(row * cols + col);
 
-    findPillars(cluster_indices, cloud, pillar_candidates);
+                pt_out.x = pt.x;
+                pt_out.y = pt.y;
+                pt_out.z = pt.z;
+                pt_out.intensity = pt.intensity;
 
-    return pillar_candidates;
-}
-
-void PillarExtractorImpl::filterPointCloud(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& full_cloud,
-                      pcl::PointCloud<pcl::PointXYZI>::Ptr& cloud,
-                      std::vector<pcl::PointIndices>& cluster_indices)
-{
-    cloud.reset(new pcl::PointCloud<pcl::PointXYZI>);
-
-    pcl::PassThrough<pcl::PointXYZI> pt;
-    pt.setFilterFieldName("intensity");
-    pt.setFilterLimits(parent_->min_intensity_, 4096);
-    pt.setInputCloud(full_cloud);
-    pt.filter(*cloud);
-
-    double d = parent_->max_range_;
-    Eigen::Vector4f min_pt_(-d, -d, -d,  0);
-    Eigen::Vector4f max_pt_(d, d, d, 0);
-
-    pcl::CropBox<pcl::PointXYZI> box;
-    box.setMin(min_pt_);
-    box.setMax(max_pt_);
-    box.setInputCloud(cloud);
-    box.filter(*cloud);
-
-    ROS_INFO_STREAM("high intensity points: " << cloud->size());
-
-    if(cloud->empty()) {
-        return;
+                pt_out.row = row;
+                pt_out.col = col;
+            }
+        }
     }
 
-    typename pcl::search::KdTree<pcl::PointXYZI>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZI>);
-    tree->setInputCloud (cloud);
 
-    typename pcl::EuclideanClusterExtraction<pcl::PointXYZI> ec;
-    ec.setClusterTolerance (parent_->cluster_tolerance_);
-    ec.setMinClusterSize (parent_->min_cluster_size_);
-    ec.setMaxClusterSize (1000);
-    ec.setSearchMethod (tree);
-    ec.setInputCloud (cloud);
-    ec.extract (cluster_indices);
-
-    ROS_INFO_STREAM(cluster_indices.size() << " cluster points");
-}
-
-
-void PillarExtractorImpl::findPillars(std::vector<pcl::PointIndices>& cluster_indices,
-                 pcl::PointCloud<pcl::PointXYZI>::Ptr& cloud,
-                 std::vector<Pillar>& pillar_candidates)
-{
-    for(std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin();
-        it != cluster_indices.end();
-        ++it)
     {
-        const pcl::PointIndices& indices_msg = *it;
+        clusters.reserve(points.size());
+        row_clusters.resize(rows);
 
-        if((int) indices_msg.indices.size() < parent_->min_pts_) {
+        for(int row = 0; row < rows; ++row) {
+            Point* last = NULL;
+            clusters.push_back(Cluster());
+            Cluster* current_cluster = &clusters.back();
+            row_clusters[row].reserve(cols);
+            row_clusters[row].push_back(current_cluster);
+
+            for(int col = 0; col < cols; ++col) {
+                Point& current = points[row * cols + col];
+                if(std::isnan(current.x)) continue;
+
+                if(last) {
+                    double jump_distance = std::abs(last->range() - current.range());
+                    //                        double jump_distance = last->distanceXYZ(current);
+
+                    current.jump_distance = jump_distance;
+
+                    if(jump_distance > cluster_distance_ring_) {
+                        // new cluster
+                        if(current_cluster->pts.size() >= cluster_min_size_) {
+                            clusters.push_back(Cluster());
+                            current_cluster = &clusters.back();
+                            row_clusters[row].push_back(current_cluster);
+                        } else {
+                            current_cluster->clear();
+                        }
+                        current_cluster->col_start = col;
+                    }
+                }
+
+                current_cluster->add(&current);
+                current_cluster->col_end = col;
+
+                last = &current;
+            }
+
+            for(std::size_t i = 0, n = row_clusters[row].size(); i < n; ++i) {
+                Cluster* c  = row_clusters[row][i];
+                if(c->pts.size() < cluster_min_size_ || c->pts.size() > cluster_max_size_) {
+                    c->clear();
+
+                } else if(cluster_max_diameter_ > 0.0) {
+                    double diameter = c->pts.front()->distanceXYZ(*c->pts.back());
+                    if(diameter > cluster_max_diameter_) {
+                        c->clear();
+                    }
+                }
+            }
+        }
+    }
+
+    {
+        bool change = true;
+        while(change) {
+            change = false;
+
+            for(int row = 0; row < rows; ++row) {
+                for(int row2 = row + 1; row2 < rows; ++row2) {
+                    if(row == row2) continue;
+
+                    for(std::size_t i = 0, n = row_clusters[row].size(); i < n; ++i) {
+                        Cluster* c1 = row_clusters[row][i];
+                        if(c1->empty()) continue;
+
+                        for(std::size_t j = 0, n = row_clusters[row2].size(); j < n; ++j) {
+                            Cluster* c2 = row_clusters[row2][j];
+                            if(c1 != c2) {
+                                if(c2->empty()) continue;
+                                if(c2->col_start > c1->col_end || c1->col_start > c2->col_end) continue;
+
+                                for(std::size_t k = 0, n = c1->pts.size(); k < n; ++k) {
+                                    Point* p1 = c1->pts[k];
+                                    bool merged = false;
+                                    for(std::size_t l = 0, n = c2->pts.size(); l < n; ++l) {
+                                        Point* p2 = c2->pts[l];
+                                        double distance = p1->distanceXY(*p2);
+                                        if(distance < cluster_distance_vertical_) {
+                                            c1->merge(c2);
+                                            merged = true;
+                                            change = true;
+                                            break;
+                                        }
+                                    }
+                                    if(merged) break;
+                                }
+                            }
+                        }
+                    }
+
+                    for(std::vector<Cluster*>::iterator it = row_clusters[row].begin(); it != row_clusters[row].end();) {
+                        if((*it)->empty()) {
+                            it = row_clusters[row].erase(it);
+                        } else {
+                            ++it;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // filter intensity
+    for(std::size_t i = 0, n = clusters.size(); i < n; ++i) {
+        Cluster& c = clusters[i];
+        if(c.pts.size() < pillar_min_points_) {
+            c.clear();
+        } else {
+            std::vector<float> intensities(c.pts.size(), 0.0f);
+            for(std::size_t j = 0, n = c.pts.size(); j < n; ++j) {
+                Point* p = c.pts[j];
+                intensities[j++] = p->intensity;
+            }
+
+            std::sort(intensities.begin(), intensities.end());
+
+            if(intensities.back() < pillar_min_intensity_) {
+                c.clear();
+            }
+        }
+    }
+
+
+    // normalize cluster ids
+    int id = 0;
+    for(std::size_t i = 0, n = clusters.size(); i < n; ++i) {
+        Cluster& c = clusters[i];
+        if(c.pts.size() > 0) {
+            c.id = id++;
+        } else {
+            c.id = -1;
+        }
+    }
+
+    std::vector<Pillar> pillars;
+
+    for(std::size_t i = 0, n = clusters.size(); i < n; ++i) {
+        Cluster& c = clusters[i];
+        if(c.empty()) {
             continue;
         }
 
-        double angle = 0;
-        double dist_sqr = std::numeric_limits<double>::infinity();
+        double r;
+        Eigen::Vector3d C, W;
+        double error = fitCylinder(c.pts, r, C, W);
 
-        for(std::vector<int>::const_iterator it = indices_msg.indices.begin();
-            it != indices_msg.indices.end();
-            ++it)
-        {
-            const pcl::PointXYZI& pt = cloud->points[*it];
 
-            double d_sqr = (pt.x * pt.x + pt.y * pt.y/* + pt.z * pt.z*/);
-            if(d_sqr < dist_sqr) {
-                dist_sqr = d_sqr;
-                angle = std::atan2(pt.y, pt.x);
-            }
-
-        }
-
-        if(std::isfinite(dist_sqr)) {
-            double r = std::sqrt(dist_sqr) + parent_->radius_;
-
-            Eigen::Vector3d centre(std::cos(angle) * r,
-                               std::sin(angle) * r,
-                               0.0);
-
-            pillar_candidates.push_back(Pillar(centre, indices_msg.indices.size()));
+        if(error < 1e-5 &&
+                r > pillar_radius_ - pillar_radius_fuzzy_ &&
+                r < pillar_radius_ + pillar_radius_fuzzy_) {
+            Pillar p;
+            p.centre = C;
+            p.up = W;
+            p.measured_radius = r;
+            pillars.push_back(p);
         }
     }
 
-    std::sort(pillar_candidates.begin(), pillar_candidates.end(), std::greater<Pillar>());
+    return pillars;
 }
+
+
+double PillarExtractor::fitCylinder(const std::vector<Point*>& cluster,
+                                    double& r, Eigen::Vector3d& C, Eigen::Vector3d& W)
+{
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > X;
+    std::size_t n = cluster.size();
+
+    X.reserve(n);
+
+    Eigen::Vector3d average = Eigen::Vector3d::Zero();
+    for(std::size_t i = 0; i < n; ++i) {
+        Point* pt = cluster[i];
+        Eigen::Vector3d p;
+        p << pt->x, pt->y, pt->z;
+
+        X.push_back(p);
+
+        average += p;
+    }
+    average /= (double) n;
+    for(std::size_t i = 0; i < n; ++i) {
+        Eigen::Vector3d& pt = X[i];
+        pt -= average;
+    }
+
+    double min_error = std::numeric_limits<double>::infinity();
+    double rsqr = 0.0;
+
+    int i_max = 64;
+    int j_max = 64;
+
+    for(int j = 0; j < j_max; ++j) {
+        double phi = M_PI_2 * j / (double) j_max;
+        double cos_phi = std::cos(phi);
+        double sin_phi = std::sin(phi);
+
+        for(int i = 0; i < i_max; ++i) {
+            double theta = 2 * M_PI * i / (double) i_max;
+            double cos_theta = std::cos(theta);
+            double sin_theta = std::sin(theta);
+
+            Eigen::Vector3d currentW(cos_theta * sin_phi, sin_theta * sin_phi, cos_phi);
+
+            Eigen::Vector3d currentC;
+            double current_rsqr;
+
+            double error = G(n, X, currentW, currentC, current_rsqr);
+
+            if(error < min_error) {
+                min_error = error;
+                W = currentW;
+                C = currentC;
+                rsqr = current_rsqr;
+            }
+        }
+    }
+
+    C += average;
+
+    r = std::sqrt(rsqr);
+
+    return min_error;
+}
+
+double PillarExtractor::G(std::size_t n,
+                          const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& X,
+                          const Eigen::Vector3d& W,
+                          Eigen::Vector3d& PC,
+                          double& rsqr)
+{
+    Eigen::Matrix3d P = Eigen::Matrix3d::Identity() - W * W.transpose();
+    Eigen::Matrix3d S;
+    S << 0, -W(2), W(1),
+            0, -W(0), -W(1),
+            -W(1), W(0), 0;
+    Eigen::Matrix3d A = Eigen::Matrix3d::Zero();
+    Eigen::Vector3d B = Eigen::Vector3d::Zero();
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > Y(n);
+    double averageSqrLength = 0;
+    std::vector<double> sqrLength(n);
+
+    for(std::size_t i = 0; i < n; ++i) {
+        Y[i] = P * X[i];
+        sqrLength[i] = Y[i].dot(Y[i]);
+
+        A += Y[i] * Y[i].transpose();
+        B += sqrLength[i] * Y[i];
+
+        averageSqrLength += sqrLength[i];
+    }
+
+    A /= (double) n;
+    B /= (double) n;
+
+    averageSqrLength /= n;
+
+    Eigen::Matrix3d  Ahat = -S * A * S;
+    PC = (Ahat * B) / (Ahat * A).trace();
+
+    double error = 0.0;
+    rsqr = 0.0;
+
+    for(std::size_t i = 0; i < n; ++i) {
+        double term = sqrLength[i] - averageSqrLength - 2 * Y[i].dot(PC);
+        error += term * term;
+        Eigen::Vector3d diff = PC - Y[i];
+        rsqr += diff.dot(diff);
+    }
+
+    error /= n;
+    rsqr /= n;
+
+    return error;
+}
+
+
+

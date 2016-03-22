@@ -53,20 +53,29 @@ public:
 
     void setupParameters(csapex::Parameterizable& params) override
     {
-        params.addParameter(param::ParameterFactory::declareRange("radius", 0.001, 1.0, 0.055, 0.001),
-                            localization_.pillar_extractor_.radius_);
         params.addParameter(param::ParameterFactory::declareRange("threshold", 0.0, 1.0, 0.25, 0.001),
                             localization_.ekf_.dist_threshold_);
-        params.addParameter(param::ParameterFactory::declareRange("min pts", 1, 100, 4, 1),
-                            localization_.pillar_extractor_.min_pts_);
-        params.addParameter(param::ParameterFactory::declareRange("max_range", 0.0, 100.0, 15.0, 0.1),
-                            localization_.pillar_extractor_.max_range_);
-        params.addParameter(param::ParameterFactory::declareRange("min_intensity", 0, 1024, 150, 1),
-                            localization_.pillar_extractor_.min_intensity_);
-        params.addParameter(param::ParameterFactory::declareRange("min_cluster_size", 1, 100, 5, 1),
-                            localization_.pillar_extractor_.min_cluster_size_);
-        params.addParameter(param::ParameterFactory::declareRange("cluster_tolerance", 0.0, 1.0, 0.7, 0.01),
-                            localization_.pillar_extractor_.cluster_tolerance_);
+
+        params.addParameter(param::ParameterFactory::declareRange("clustering/max distance on ring", 0.0, 0.1, 0.05, 0.001),
+                            localization_.pillar_extractor_.cluster_distance_ring_);
+        params.addParameter(param::ParameterFactory::declareRange("clustering/max distance vertically", 0.0, 0.1, 0.05, 0.001),
+                            localization_.pillar_extractor_.cluster_distance_vertical_);
+        params.addParameter(param::ParameterFactory::declareRange("clustering/min cluster size", 0, 1024, 32, 1),
+                            localization_.pillar_extractor_.cluster_min_size_);
+        params.addParameter(param::ParameterFactory::declareRange("clustering/max cluster size", 0, 1024, 32, 1),
+                            localization_.pillar_extractor_.cluster_max_size_);
+        params.addParameter(param::ParameterFactory::declareRange("clustering/max cluster diameter", 0.0, 5.0, 0.2, 0.01),
+                            localization_.pillar_extractor_.cluster_max_diameter_);
+
+        params.addParameter(param::ParameterFactory::declareRange("pillar/min intensity", 0.0, 1024.0, 120.0, 0.1),
+                            localization_.pillar_extractor_.pillar_min_intensity_);
+        params.addParameter(param::ParameterFactory::declareRange("pillar/min points", 0, 512, 32, 1),
+                            localization_.pillar_extractor_.pillar_min_points_);
+        params.addParameter(param::ParameterFactory::declareRange("pillar/radius", 0.001, 1.0, 0.055, 0.001),
+                            localization_.pillar_extractor_.pillar_radius_);
+        params.addParameter(param::ParameterFactory::declareRange("pillar/radius threshold", 0.000, 1.0, 0.055, 0.001),
+                            localization_.pillar_extractor_.pillar_radius_fuzzy_);
+
 
         params.addParameter(param::ParameterFactory::declareTrigger("reset"), [this](param::Parameter*) {
             reset();

@@ -3,19 +3,19 @@
 
 
 Pillar::Pillar()
-    : points(0)
+    : points(0), measured_radius(0.0)
 {
 
 }
 
 Pillar::Pillar(const Eigen::Vector3d& centre)
-    : centre(centre), points(0)
+    : centre(centre), points(0), measured_radius(0.0)
 {
 
 }
 
 Pillar::Pillar(const Eigen::Vector3d& centre, int points)
-    : centre(centre), points(points)
+    : centre(centre), points(points), measured_radius(0.0)
 {
 
 }
