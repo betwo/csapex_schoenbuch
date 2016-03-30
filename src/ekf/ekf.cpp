@@ -84,17 +84,15 @@ void EKF::setPillars(const std::vector<Pillar>& pillars)
     correctAbsolute(pillars);
 }
 
-void EKF::predict(const Eigen::Vector3d& delta, double _v, double _omega, double dt)
+bool EKF::predict(const Eigen::Vector3d& delta, double _v, double _omega, double dt)
 {
     double theta = mu(2);
 
-    double f = 0.7;
+    double omega = delta(2) / dt;
+    double v = delta(0) / dt;
 
-    double omega = f * _omega;
-    double v = f * _v;
-
-    if(std::abs(v) < 1e-10 && std::abs(omega) < 1e-10) {
-        return;
+    if(std::abs(_v) < 1e-10 && std::abs(_omega) < 1e-10) {
+        return false;
     }
 
     if(omega == 0.0) {
@@ -114,9 +112,12 @@ void EKF::predict(const Eigen::Vector3d& delta, double _v, double _omega, double
             0, 0, 1;
 
     mu += g;
+
     P = G * P * G.transpose() + R;
 
     mu(2) = normalizeAngle(mu(2));
+
+    return true;
 }
 
 
@@ -127,23 +128,33 @@ void EKF::correct(const std::vector<Pillar>& z)
     } else {
         correctLandmark(z);
     }
+
+    updateMeasurement(z);
 }
 
 void EKF::updateMeasurement(const std::vector<Pillar>& z)
 {
     meas_pillars_.clear();
 
-    for(std::size_t i = 0; i < std::min((std::size_t) 3, z.size()); ++i) {
-        Eigen::Vector3d p_i = z[i].centre;
+    Eigen::Matrix4d fixed_t_robot;
+    fixed_t_robot << std::cos(mu(2)), -std::sin(mu(2)), 0, mu(0),
+            std::sin(mu(2)), std::cos(mu(2)), 0, mu(1),
+            0, 0, 1, 0,
+            0, 0, 0, 1;
 
-        meas_pillars_.push_back(p_i);
+    for(std::size_t i = 0; i < std::min((std::size_t) 3, z.size()); ++i) {
+        Eigen::Vector4d p_i_robot;
+        p_i_robot.block<3,1>(0,0) = z[i].centre;
+        p_i_robot(3,0) = 1;
+
+        Eigen::Vector4d p_i = fixed_t_robot * p_i_robot;
+
+        meas_pillars_.push_back(p_i.block<3,1>(0,0).eval());
     }
 }
 
 void EKF::correctLandmark(const std::vector<Pillar>& z)
 {
-    updateMeasurement(z);
-
     std::size_t N = pillars_.size();
 
     std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix3d> > S(N);
@@ -211,7 +222,6 @@ void EKF::correctLandmark(const std::vector<Pillar>& z)
 
 bool EKF::correctAbsolute(const std::vector<Pillar>& z, bool fix)
 {
-    updateMeasurement(z);
     assert(z.size() >= 3);
 
     const Eigen::Vector3d& a = z[0].centre;

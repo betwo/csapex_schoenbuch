@@ -60,6 +60,9 @@ public:
                             localization_.pillar_extractor_.cluster_distance_ring_);
         params.addParameter(param::ParameterFactory::declareRange("clustering/max distance vertically", 0.0, 0.1, 0.05, 0.001),
                             localization_.pillar_extractor_.cluster_distance_vertical_);
+        params.addParameter(param::ParameterFactory::declareRange("clustering/max distance euclidean", 0.0, 1.0, 0.5, 0.01),
+                            localization_.pillar_extractor_.cluster_distance_euclidean_);
+
         params.addParameter(param::ParameterFactory::declareRange("clustering/min cluster size", 0, 1024, 32, 1),
                             localization_.pillar_extractor_.cluster_min_size_);
         params.addParameter(param::ParameterFactory::declareRange("clustering/max cluster size", 0, 1024, 32, 1),

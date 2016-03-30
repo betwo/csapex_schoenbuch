@@ -22,22 +22,27 @@ public:
 
         pub_marker_ = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 10, false);
         pub_marker_array_ = nh_.advertise<visualization_msgs::MarkerArray>("visualization_marker_array", 10, false);
+        pub_undistorted_ = nh_.advertise<sensor_msgs::PointCloud2>("velodyne_points/undistored", 10, false);
 
         localization_.fixed_frame_ = pnh_.param("fixed_frame", std::string("/pillars"));
 
-        localization_.init_steps_ = pnh_.param("init_steps", 10);
+        localization_.init_steps_ = pnh_.param("init_steps", 0);
 
         localization_.ekf_.dist_threshold_ = pnh_.param("threshold", 0.25);
 
-        localization_.pillar_extractor_.pillar_radius_ = pnh_.param("radius", 0.055);
-        localization_.pillar_extractor_.pillar_radius_fuzzy_ = pnh_.param("radius_threshold", 0.055);
-        localization_.pillar_extractor_.pillar_min_points_ = pnh_.param("min_pts", 5);
-        localization_.pillar_extractor_.cluster_max_diameter_  = pnh_.param("cluster_max", 2.0);
-        localization_.pillar_extractor_.pillar_min_intensity_ = pnh_.param("min_intensity", 150);
-        localization_.pillar_extractor_.cluster_min_size_= pnh_.param("min_cluster_size", 5);
-        localization_.pillar_extractor_.cluster_max_size_= pnh_.param("max_cluster_size", 5);
-        localization_.pillar_extractor_.cluster_distance_ring_ = pnh_.param("cluster_tolerance_ring", 0.7);
-        localization_.pillar_extractor_.cluster_distance_vertical_ = pnh_.param("cluster_tolerance_vertical", 0.7);
+        localization_.scan_duration_ = ros::Duration(pnh_.param("scan_duration", 1.0 / 10.0));
+        localization_.scan_offset_ = ros::Duration(pnh_.param("scan_offset", 0.0));
+
+        localization_.pillar_extractor_.pillar_radius_ = pnh_.param("radius", 0.065);
+        localization_.pillar_extractor_.pillar_radius_fuzzy_ = pnh_.param("radius_threshold", 0.04);
+        localization_.pillar_extractor_.pillar_min_points_ = pnh_.param("min_pts", 4);
+        localization_.pillar_extractor_.cluster_max_diameter_  = pnh_.param("cluster_max", 0.0);
+        localization_.pillar_extractor_.pillar_min_intensity_ = pnh_.param("min_intensity", 140);
+        localization_.pillar_extractor_.cluster_min_size_= pnh_.param("min_cluster_size", 2);
+        localization_.pillar_extractor_.cluster_max_size_= pnh_.param("max_cluster_size", 37);
+        localization_.pillar_extractor_.cluster_distance_ring_ = pnh_.param("cluster_tolerance_ring", 0.043);
+        localization_.pillar_extractor_.cluster_distance_vertical_ = pnh_.param("cluster_tolerance_vertical", 0.026);
+        localization_.pillar_extractor_.cluster_distance_euclidean_ = pnh_.param("cluster_tolerance_euclidean", 0.5);
     }
 
     void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& input)
@@ -47,7 +52,16 @@ public:
         pcl::PointCloud<pcl::PointXYZI>::Ptr full_cloud(new pcl::PointCloud<pcl::PointXYZI>);
         pcl::fromPCLPointCloud2(pcl_pc2,*full_cloud);
 
-        localization_.applyMeasurement(full_cloud);
+        localization_.applyMeasurement(full_cloud, true);
+
+        pcl::PointCloud<pcl::PointXYZI>::ConstPtr undistorted = localization_.getUndistortedCloud();
+
+        pcl::PCLPointCloud2 pcl_pc2_out;
+        pcl::toPCLPointCloud2(*undistorted, pcl_pc2_out);
+        sensor_msgs::PointCloud2::Ptr undistorted_ros(new sensor_msgs::PointCloud2);
+        pcl_conversions::fromPCL(pcl_pc2_out, *undistorted_ros);
+
+        pub_undistorted_.publish(undistorted_ros);
     }
 
     void odomCallback(const nav_msgs::OdometryConstPtr& odom)
@@ -108,7 +122,7 @@ public:
         marker.color.b = 1.0;
 
         for(std::size_t i = 0; i < 3; ++i) {
-            marker.header.frame_id = "velodyne";
+            marker.header.frame_id = localization_.fixed_frame_;
             if(i >= localization_.ekf_.meas_pillars_.size()) {
                 marker.action = visualization_msgs::Marker::DELETE;
 
@@ -139,6 +153,7 @@ private:
 
     ros::Publisher pub_marker_;
     ros::Publisher pub_marker_array_;
+    ros::Publisher pub_undistorted_;
 
     tf::TransformBroadcaster tfb_;
 };
@@ -157,7 +172,7 @@ int main(int argc, char *argv[])
 
     PillarLocalizationNode node;
 
-    ros::Rate rate(60);
+    ros::Rate rate(120);
 
     while(ros::ok()) {
         ros::spinOnce();
