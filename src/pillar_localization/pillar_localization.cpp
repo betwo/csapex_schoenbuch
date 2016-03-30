@@ -244,8 +244,13 @@ bool PillarLocalization::applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>:
             ekf_.correct(pillars);
             success = true;
         }
+    }
 
-        updatePose(last_stamp_);
+    if(success) {
+        ros::Time stamp;
+        stamp.fromNSec(input->header.stamp * 1e3);
+        stamp += scan_offset_;
+        updatePose(stamp);
     }
 
     return success;
@@ -278,7 +283,6 @@ void PillarLocalization::applyOdometry(const nav_msgs::Odometry &odom)
     }
 
     ros::Duration dur = current_stamp - last_stamp_;
-    last_stamp_ = current_stamp;
     double dt = dur.toSec();
 
     tf::Pose delta_pose = last_pose_.inverse() * current_odom_pose;
@@ -289,9 +293,10 @@ void PillarLocalization::applyOdometry(const nav_msgs::Odometry &odom)
 
     if(ekf_.predict(delta, odom.twist.twist.linear.x, odom.twist.twist.angular.z, dt)) {
         last_pose_ = current_odom_pose;
+        last_stamp_ = current_stamp;
+        updatePose(current_stamp);
     }
 
-    updatePose(current_stamp);
 }
 
 tf::StampedTransform PillarLocalization::getPose() const

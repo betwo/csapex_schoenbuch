@@ -49,6 +49,8 @@ struct EKF {
 
 private:
     void updateMeasurement(const std::vector<Pillar>& z);
+
+    bool findAbsolutePose(const std::vector<Pillar> &z, Eigen::Matrix3d &pose);
 };
 
 #endif // EKF_H

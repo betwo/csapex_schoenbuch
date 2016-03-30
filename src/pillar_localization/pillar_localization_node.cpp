@@ -17,8 +17,8 @@ public:
     PillarLocalizationNode()
         : pnh_("~")
     {
-        sub_velodyne_ = nh_.subscribe<sensor_msgs::PointCloud2>("velodyne_points", 10, boost::bind(&PillarLocalizationNode::cloudCallback, this, _1));
-        sub_odom_ = nh_.subscribe<nav_msgs::Odometry>("odom", 1000, boost::bind(&PillarLocalizationNode::odomCallback, this, _1));
+        sub_velodyne_ = nh_.subscribe<sensor_msgs::PointCloud2>("velodyne_points", 0, boost::bind(&PillarLocalizationNode::cloudCallback, this, _1));
+        sub_odom_ = nh_.subscribe<nav_msgs::Odometry>("odom", 0, boost::bind(&PillarLocalizationNode::odomCallback, this, _1));
 
         pub_marker_ = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 10, false);
         pub_marker_array_ = nh_.advertise<visualization_msgs::MarkerArray>("visualization_marker_array", 10, false);
@@ -30,8 +30,9 @@ public:
 
         localization_.ekf_.dist_threshold_ = pnh_.param("threshold", 0.25);
 
-        localization_.scan_duration_ = ros::Duration(pnh_.param("scan_duration", 1.0 / 10.0));
-        localization_.scan_offset_ = ros::Duration(pnh_.param("scan_offset", 0.0));
+        // time parameter estimated for VLP16
+        localization_.scan_duration_ = ros::Duration(pnh_.param("scan_duration", 0.095));
+        localization_.scan_offset_ = ros::Duration(pnh_.param("scan_offset", 0.06));
 
         localization_.pillar_extractor_.pillar_radius_ = pnh_.param("radius", 0.065);
         localization_.pillar_extractor_.pillar_radius_fuzzy_ = pnh_.param("radius_threshold", 0.04);
@@ -47,26 +48,41 @@ public:
 
     void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& input)
     {
-        pcl::PCLPointCloud2 pcl_pc2;
-        pcl_conversions::toPCL(*input, pcl_pc2);
-        pcl::PointCloud<pcl::PointXYZI>::Ptr full_cloud(new pcl::PointCloud<pcl::PointXYZI>);
-        pcl::fromPCLPointCloud2(pcl_pc2,*full_cloud);
-
-        localization_.applyMeasurement(full_cloud, true);
-
-        pcl::PointCloud<pcl::PointXYZI>::ConstPtr undistorted = localization_.getUndistortedCloud();
-
-        pcl::PCLPointCloud2 pcl_pc2_out;
-        pcl::toPCLPointCloud2(*undistorted, pcl_pc2_out);
-        sensor_msgs::PointCloud2::Ptr undistorted_ros(new sensor_msgs::PointCloud2);
-        pcl_conversions::fromPCL(pcl_pc2_out, *undistorted_ros);
-
-        pub_undistorted_.publish(undistorted_ros);
+        latest_cloud_ = input;
     }
 
     void odomCallback(const nav_msgs::OdometryConstPtr& odom)
     {
-        localization_.applyOdometry(*odom);
+        latest_odom_ = odom;
+    }
+
+    void tick()
+    {
+        if(latest_odom_) {
+            localization_.applyOdometry(*latest_odom_);
+            latest_odom_.reset();
+        }
+
+        if(latest_cloud_) {
+            pcl::PCLPointCloud2 pcl_pc2;
+            pcl_conversions::toPCL(*latest_cloud_, pcl_pc2);
+            pcl::PointCloud<pcl::PointXYZI>::Ptr full_cloud(new pcl::PointCloud<pcl::PointXYZI>);
+            pcl::fromPCLPointCloud2(pcl_pc2,*full_cloud);
+
+            localization_.applyMeasurement(full_cloud);
+
+            pcl::PointCloud<pcl::PointXYZI>::ConstPtr undistorted = localization_.getUndistortedCloud();
+
+            pcl::PCLPointCloud2 pcl_pc2_out;
+            pcl::toPCLPointCloud2(*undistorted, pcl_pc2_out);
+            sensor_msgs::PointCloud2::Ptr undistorted_ros(new sensor_msgs::PointCloud2);
+            pcl_conversions::fromPCL(pcl_pc2_out, *undistorted_ros);
+
+            pub_undistorted_.publish(undistorted_ros);
+
+            latest_cloud_.reset();
+        }
+
 
         tf::StampedTransform pose = localization_.getPose();
 
@@ -156,6 +172,9 @@ private:
     ros::Publisher pub_undistorted_;
 
     tf::TransformBroadcaster tfb_;
+
+    sensor_msgs::PointCloud2::ConstPtr latest_cloud_;
+    nav_msgs::OdometryConstPtr latest_odom_;
 };
 
 void siginthandler(int)
@@ -176,6 +195,9 @@ int main(int argc, char *argv[])
 
     while(ros::ok()) {
         ros::spinOnce();
+
+        node.tick();
+
         rate.sleep();
     }
 
