@@ -70,7 +70,7 @@ public:
 
         params.addParameter(param::ParameterFactory::declareRange("pillar/min intensity", 0.0, 1024.0, 120.0, 0.1),
                             extractor_.pillar_min_intensity_);
-        params.addParameter(param::ParameterFactory::declareRange("pillar/min points", 0, 512, 32, 1),
+        params.addParameter(param::ParameterFactory::declareRange("pillar/min points", 1, 512, 32, 1),
                             extractor_.pillar_min_points_);
         params.addParameter(param::ParameterFactory::declareRange("pillar/radius", 0.001, 1.0, 0.055, 0.001),
                             extractor_.pillar_radius_);

@@ -1,14 +1,30 @@
 <library path="libschoenbuch_node">
 <class type="csapex::ObjectDetector" base_class_type="csapex::Node">
   <description>Outdoor object detection for the Schönbuch Project.</description>
+  <tags>Schönbuch, schoenbuch</tags>
+</class>
+<class type="schoenbuch::PersonDetector" base_class_type="csapex::Node">
+  <description>Detects people-like objects in the velodyne scan.</description>
+  <tags>Schönbuch, schoenbuch</tags>
 </class>
 <class type="csapex::PillarLocalization" base_class_type="csapex::Node">
   <description>Triangulation of the robot pose for reflective pillars.</description>
+  <tags>Schönbuch, schoenbuch</tags>
 </class>
 <class type="csapex::ParamEstimator" base_class_type="csapex::Node">
   <description>Parameter estimation for Goran's controller</description>
+  <tags>Schönbuch, schoenbuch</tags>
 </class>
 <class type="csapex::PoseDifference" base_class_type="csapex::Node">
   <description></description>
+  <tags>Schönbuch, schoenbuch</tags>
+</class>
+<class type="csapex::IMUIntegration" base_class_type="csapex::Node">
+  <description>Integrates IMU messages into a pose estimate</description>
+  <tags>Schönbuch, schoenbuch</tags>
+</class>
+<class type="csapex::VelodyneUndistortion" base_class_type="csapex::Node">
+  <description>Undistorts a velodyne scan using odometry</description>
+  <tags>Schönbuch, schoenbuch</tags>
 </class>
 </library>
