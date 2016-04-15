@@ -27,4 +27,12 @@
   <description>Undistorts a velodyne scan using odometry</description>
   <tags>Schönbuch, schoenbuch</tags>
 </class>
+<class type="csapex::LoamSegmentation" base_class_type="csapex::Node">
+  <description>Splits a pointcloud into segments using the LOAM algorithm</description>
+  <tags>Schönbuch, schoenbuch</tags>
+</class>
+<class type="csapex::VelodyneSegmentation" base_class_type="csapex::Node">
+  <description>Splits a pointcloud into segments</description>
+  <tags>Schönbuch, schoenbuch</tags>
+</class>
 </library>

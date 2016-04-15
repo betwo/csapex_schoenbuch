@@ -69,6 +69,8 @@ add_library(schoenbuch_node
     src/pose_difference.cpp
     src/imu_integration.cpp
     src/velodyne_undistortion.cpp
+    src/loam_segmentation.cpp
+    src/velodyne_segmentation.cpp
 )
 target_link_libraries(schoenbuch_node schoenbuch
     ${catkin_LIBRARIES}
