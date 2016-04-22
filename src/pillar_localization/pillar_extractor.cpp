@@ -74,7 +74,7 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
 
                     if(jump_distance > cluster_distance_ring_) {
                         // new cluster
-                        if(current_cluster->pts.size() >= cluster_min_size_) {
+                        if((int) current_cluster->pts.size() >= cluster_min_size_) {
                             clusters.push_back(Cluster());
                             current_cluster = &clusters.back();
                             row_clusters[row].push_back(current_cluster);
@@ -93,7 +93,7 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
 
             for(std::size_t i = 0, n = row_clusters[row].size(); i < n; ++i) {
                 Cluster* c  = row_clusters[row][i];
-                if(c->pts.size() < cluster_min_size_ || c->pts.size() > cluster_max_size_) {
+                if((int) c->pts.size() < cluster_min_size_ || c->pts.size() > cluster_max_size_) {
                     c->clear();
 
                 } else if(cluster_max_diameter_ > 0.0) {
@@ -161,7 +161,7 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
     std::vector<Cluster*> filtered_clusters;
     for(std::size_t i = 0, n = clusters.size(); i < n; ++i) {
         Cluster& c = clusters[i];
-        if(c.pts.size() < pillar_min_points_) {
+        if((int) c.pts.size() < pillar_min_points_) {
             c.clear();
         } else {
             std::vector<float> intensities(c.pts.size(), 0.0f);
