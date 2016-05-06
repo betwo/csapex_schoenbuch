@@ -1,64 +1,120 @@
 #!/localhome/buck/ws/apex/build/devel/lib/csapex/csapex_node
+threads:
+  assignments:
+    - id: 1
+      uuid: csapex::IMUIntegration_0
+    - uuid: csapex::ImportRos_2
+      id: 1
+    - uuid: csapex::TransformPublisher_0
+      id: 1
+    - id: 1
+      uuid: csapex::TransformInverter_1
+    - uuid: csapex::DynamicTransform_0
+      id: 1
+    - uuid: csapex::ImportRos_3
+      id: 1
+    - id: 1
+      uuid: csapex::VelodyneUndistortion_0
+    - id: 1
+      uuid: csapex::ExportRos_0
+    - uuid: csapex::ImportRos_4
+      id: 1
+    - id: 0
+      uuid: csapex::VelodyneSegmentation_0
+    - id: 1
+      uuid: csapex::ExportRos_5
+    - uuid: csapex::ExportRos_6
+      id: 1
+    - uuid: csapex::ClusterPointcloud_1
+      id: 0
+    - id: 1
+      uuid: csapex::LabelClusteredPointCloud_0
+    - uuid: csapex::ColorPointCloud_0
+      id: 1
+    - uuid: csapex::ExportRos_7
+      id: 1
+    - uuid: csapex::ClustersToMarkerArray_0
+      id: 1
+    - uuid: schoenbuch::LocalHazardField_0
+      id: 0
+    - uuid: csapex::DynamicTransform_1
+      id: 1
+    - uuid: csapex::ExportRos_8
+      id: 1
+    - uuid: csapex::ExportRos_9
+      id: 1
+  groups:
+    - name: Imu Tf
+      id: 2
+uuid_map:
+  csapex::Clock: 1
+  csapex::CloudRenderer: 3
+  csapex::ClustersToMarkerArray: 1
+  csapex::ColorPointCloud: 1
+  csapex::IMUIntegration: 1
+  csapex::ImportRos: 5
+  csapex::LabelClusteredPointCloud: 1
+  csapex::DynamicTransform: 2
+  csapex::ExportRos: 10
+  csapex::ExtractTimeStamp: 2
+  csapex::LoamSegmentation: 1
+  csapex::Note: 1
+  csapex::ObjectDetector: 1
+  csapex::VelodyneUndistortion: 1
+  schoenbuch::LocalHazardField: 1
+  schoenbuch::PersonDetector: 1
+  csapex::StaticTransform: 2
+  csapex::TextDisplay: 15
+  csapex::TransformCloud: 1
+  csapex::TransformInverter: 3
+  csapex::TransformPublisher: 3
+  csapex::VelodyneSegmentation: 1
+  csapex::ClusterPointcloud: 2
 nodes:
-  - state:
-      persistent_params:
-        []
-      params:
-        reset:
-          type: trigger
-          name: reset
-        offset/roll:
-          min: -3.141592653589793
-          max: 3.141592653589793
-          type: angle
-          name: offset/roll
-          value: -0.06108652381980173
-        offset/pitch:
-          max: 3.141592653589793
-          type: angle
-          name: offset/pitch
-          value: 0.10599
-          min: -3.141592653589793
+  - type: csapex::IMUIntegration
+    uuid: csapex::IMUIntegration_0
     label: csapex::IMUIntegration_0
     pos:
       - -439
       - -248
+    state:
+      persistent_params:
+        []
+      params:
+        offset/roll:
+          type: angle
+          name: offset/roll
+          max: 3.141592653589793
+          value: -0.06108652381980173
+          min: -3.141592653589793
+        reset:
+          type: trigger
+          name: reset
+        offset/pitch:
+          max: 3.141592653589793
+          name: offset/pitch
+          value: 0.10599
+          min: -3.141592653589793
+          type: angle
     color:
       - -1
       - -1
       - -1
     z: 388
-    type: csapex::IMUIntegration
-    uuid: csapex::IMUIntegration_0
     minimized: false
     enabled: true
     flipped: false
-  - type: csapex::ImportRos
-    state:
+  - state:
       persistent_params:
         []
       params:
-        buffer/length:
+        rate:
           type: range
-          name: buffer/length
-          double: 1
-          min: 0
-          max: 10
+          name: rate
+          double: 100
+          min: 0.1
+          max: 100
           step: 0.1
-        buffer/max_wait:
-          type: range
-          name: buffer/max_wait
-          double: 1
-          min: 0
-          max: 10
-          step: 0.1
-        queue:
-          type: range
-          name: queue
-          int: 0
-          max: 30
-          min: 0
-          step: 1
         refresh:
           type: trigger
           name: refresh
@@ -67,19 +123,32 @@ nodes:
           name: topic
           txt: /odom
           string: /odom
-        rate:
-          max: 100
+        buffer/max_wait:
+          type: range
+          name: buffer/max_wait
+          double: 1
+          max: 10
+          min: 0
+          step: 0.1
+        buffer/length:
           step: 0.1
           type: range
-          name: rate
-          double: 100
-          min: 0.1
+          name: buffer/length
+          double: 1
+          min: 0
+          max: 10
         latch:
+          type: value
           name: latch
           bool: false
-          type: value
-    enabled: true
-    flipped: false
+        queue:
+          max: 30
+          step: 1
+          type: range
+          name: queue
+          int: 0
+          min: 0
+    type: csapex::ImportRos
     uuid: csapex::ImportRos_2
     label: csapex::ImportRos_2
     pos:
@@ -91,7 +160,12 @@ nodes:
       - -1
     z: 186
     minimized: false
-  - pos:
+    enabled: true
+    flipped: false
+  - type: csapex::TransformPublisher
+    uuid: csapex::TransformPublisher_0
+    label: csapex::TransformPublisher_0
+    pos:
       - 158
       - -337
     color:
@@ -100,14 +174,9 @@ nodes:
       - -1
     z: 672
     minimized: false
-    type: csapex::TransformPublisher
-    uuid: csapex::TransformPublisher_0
-    label: csapex::TransformPublisher_0
     enabled: true
     flipped: false
     state:
-      persistent_params:
-        []
       params:
         from:
           type: value
@@ -117,6 +186,8 @@ nodes:
           type: value
           name: to
           string: ""
+      persistent_params:
+        []
   - type: csapex::TransformInverter
     uuid: csapex::TransformInverter_1
     label: csapex::TransformInverter_1
@@ -136,7 +207,13 @@ nodes:
         {}
       persistent_params:
         []
-  - color:
+  - type: csapex::DynamicTransform
+    uuid: csapex::DynamicTransform_0
+    label: csapex::DynamicTransform_0
+    pos:
+      - -870
+      - 160
+    color:
       - -1
       - -1
       - -1
@@ -144,12 +221,6 @@ nodes:
     minimized: false
     enabled: true
     flipped: false
-    type: csapex::DynamicTransform
-    uuid: csapex::DynamicTransform_0
-    label: csapex::DynamicTransform_0
-    pos:
-      - -870
-      - 160
     state:
       params:
         refresh:
@@ -170,9 +241,7 @@ nodes:
           string: /imu_link
       persistent_params:
         []
-  - enabled: true
-    flipped: false
-    uuid: csapex::ImportRos_3
+  - uuid: csapex::ImportRos_3
     label: csapex::ImportRos_3
     pos:
       - -723
@@ -181,9 +250,11 @@ nodes:
       - -1
       - -1
       - -1
+    type: csapex::ImportRos
     z: 473
     minimized: false
-    type: csapex::ImportRos
+    enabled: true
+    flipped: false
     state:
       params:
         buffer/length:
@@ -228,9 +299,21 @@ nodes:
           string: /velodyne_points
       persistent_params:
         []
-  - state:
-      persistent_params:
-        []
+  - uuid: csapex::VelodyneUndistortion_0
+    pos:
+      - -335
+      - 921
+    z: 483
+    label: csapex::VelodyneUndistortion_0
+    color:
+      - -1
+      - -1
+      - -1
+    type: csapex::VelodyneUndistortion
+    minimized: false
+    enabled: true
+    flipped: false
+    state:
       params:
         scan/duration:
           type: value
@@ -240,24 +323,14 @@ nodes:
           type: value
           name: scan/offset
           double: 0.06
-    type: csapex::VelodyneUndistortion
-    uuid: csapex::VelodyneUndistortion_0
-    label: csapex::VelodyneUndistortion_0
-    pos:
-      - -335
-      - 921
-    color:
-      - -1
-      - -1
-      - -1
-    z: 483
-    minimized: false
-    enabled: true
-    flipped: false
-  - label: csapex::ExportRos_0
+      persistent_params:
+        []
+  - uuid: csapex::ExportRos_0
+    label: csapex::ExportRos_0
     pos:
       - -345
       - 1176
+    type: csapex::ExportRos
     color:
       - -1
       - -1
@@ -266,8 +339,6 @@ nodes:
     minimized: false
     enabled: true
     flipped: false
-    type: csapex::ExportRos
-    uuid: csapex::ExportRos_0
     state:
       params:
         topic:
@@ -276,16 +347,29 @@ nodes:
           string: /velodyne_points/undistorted
       persistent_params:
         []
-  - type: csapex::ImportRos
-    uuid: csapex::ImportRos_4
+  - uuid: csapex::ImportRos_4
     label: csapex::ImportRos_4
+    type: csapex::ImportRos
     pos:
       - -950
       - -486
+    color:
+      - -1
+      - -1
+      - -1
+    z: 213
+    minimized: false
+    enabled: true
+    flipped: false
     state:
-      persistent_params:
-        []
       params:
+        buffer/length:
+          type: range
+          name: buffer/length
+          double: 1
+          min: 0
+          max: 10
+          step: 0.1
         buffer/max_wait:
           type: range
           name: buffer/max_wait
@@ -319,32 +403,19 @@ nodes:
           name: topic
           txt: /imu
           string: /imu
-        buffer/length:
-          name: buffer/length
-          double: 1
-          min: 0
-          max: 10
-          step: 0.1
-          type: range
+      persistent_params:
+        []
+  - uuid: csapex::VelodyneSegmentation_0
     color:
       - -1
       - -1
       - -1
-    z: 213
-    minimized: false
-    enabled: true
-    flipped: false
-  - type: csapex::VelodyneSegmentation
-    uuid: csapex::VelodyneSegmentation_0
-    label: csapex::VelodyneSegmentation_0
     pos:
       - 79
       - 740
-    color:
-      - -1
-      - -1
-      - -1
+    label: csapex::VelodyneSegmentation_0
     z: 653
+    type: csapex::VelodyneSegmentation
     minimized: false
     enabled: true
     flipped: false
@@ -371,8 +442,7 @@ nodes:
           max: 3.141592653589793
       persistent_params:
         []
-  - type: csapex::ExportRos
-    uuid: csapex::ExportRos_5
+  - uuid: csapex::ExportRos_5
     label: csapex::ExportRos_5
     pos:
       - 537
@@ -381,6 +451,7 @@ nodes:
       - -1
       - -1
       - -1
+    type: csapex::ExportRos
     z: 676
     minimized: false
     enabled: true
@@ -393,9 +464,9 @@ nodes:
           string: /visualization_marker_array
       persistent_params:
         []
-  - type: csapex::ExportRos
-    uuid: csapex::ExportRos_6
+  - uuid: csapex::ExportRos_6
     label: csapex::ExportRos_6
+    type: csapex::ExportRos
     pos:
       - 779
       - 173
@@ -415,10 +486,36 @@ nodes:
           string: objects
       persistent_params:
         []
-  - state:
-      persistent_params:
-        []
+  - uuid: csapex::ClusterPointcloud_1
+    label: csapex::ClusterPointcloud_1
+    type: csapex::ClusterPointcloud
+    pos:
+      - 466
+      - 514
+    color:
+      - -1
+      - -1
+      - -1
+    z: 651
+    minimized: false
+    enabled: true
+    flipped: false
+    state:
       params:
+        ClusterTolerance:
+          type: range
+          name: ClusterTolerance
+          double: 0.175
+          min: 0.001
+          max: 2
+          step: 0.001
+        MaxClusterSize:
+          type: range
+          name: MaxClusterSize
+          int: 10000
+          min: 0
+          max: 100000
+          step: 1
         MinClusterSize:
           type: range
           name: MinClusterSize
@@ -444,34 +541,8 @@ nodes:
           min: 0
           max: 1000
           step: 0.1
-        ClusterTolerance:
-          type: range
-          name: ClusterTolerance
-          double: 0.175
-          min: 0.001
-          max: 2
-          step: 0.001
-        MaxClusterSize:
-          type: range
-          name: MaxClusterSize
-          int: 10000
-          min: 0
-          max: 100000
-          step: 1
-    type: csapex::ClusterPointcloud
-    uuid: csapex::ClusterPointcloud_1
-    label: csapex::ClusterPointcloud_1
-    pos:
-      - 466
-      - 514
-    color:
-      - -1
-      - -1
-      - -1
-    z: 651
-    minimized: false
-    enabled: true
-    flipped: false
+      persistent_params:
+        []
   - type: csapex::LabelClusteredPointCloud
     uuid: csapex::LabelClusteredPointCloud_0
     label: csapex::LabelClusteredPointCloud_0
@@ -491,8 +562,7 @@ nodes:
         {}
       persistent_params:
         []
-  - type: csapex::ColorPointCloud
-    uuid: csapex::ColorPointCloud_0
+  - uuid: csapex::ColorPointCloud_0
     label: csapex::ColorPointCloud_0
     pos:
       - 395
@@ -501,6 +571,7 @@ nodes:
       - -1
       - -1
       - -1
+    type: csapex::ColorPointCloud
     z: 431
     minimized: false
     enabled: true
@@ -510,9 +581,9 @@ nodes:
         {}
       persistent_params:
         []
-  - type: csapex::ExportRos
-    uuid: csapex::ExportRos_7
+  - uuid: csapex::ExportRos_7
     label: csapex::ExportRos_7
+    type: csapex::ExportRos
     pos:
       - 1130
       - 331
@@ -532,9 +603,9 @@ nodes:
           string: /visualization_marker_array
       persistent_params:
         []
-  - type: csapex::ClustersToMarkerArray
-    uuid: csapex::ClustersToMarkerArray_0
+  - uuid: csapex::ClustersToMarkerArray_0
     label: csapex::ClustersToMarkerArray_0
+    type: csapex::ClustersToMarkerArray
     pos:
       - 923
       - 501
@@ -554,9 +625,9 @@ nodes:
           bool: true
       persistent_params:
         []
-  - type: schoenbuch::LocalHazardField
-    uuid: schoenbuch::LocalHazardField_0
+  - uuid: schoenbuch::LocalHazardField_0
     label: schoenbuch::LocalHazardField_0
+    type: schoenbuch::LocalHazardField
     pos:
       - 1249
       - 691
@@ -643,17 +714,17 @@ nodes:
       persistent_params:
         []
   - uuid: csapex::DynamicTransform_1
-    label: csapex::DynamicTransform_1
     pos:
       - 863
       - 1106
+    label: csapex::DynamicTransform_1
     enabled: true
+    flipped: false
+    z: 607
     color:
       - -1
       - -1
       - -1
-    flipped: false
-    z: 607
     minimized: false
     type: csapex::DynamicTransform
     state:
@@ -681,12 +752,12 @@ nodes:
     pos:
       - 1686
       - 1015
+    type: csapex::ExportRos
     color:
       - -1
       - -1
       - -1
-    type: csapex::ExportRos
-    z: 589
+    z: 678
     minimized: false
     enabled: true
     flipped: false
@@ -720,77 +791,6 @@ nodes:
           string: /visualization_marker_array
       persistent_params:
         []
-uuid_map:
-  csapex::ExportRos: 10
-  csapex::ExtractTimeStamp: 2
-  csapex::DynamicTransform: 2
-  csapex::TransformInverter: 3
-  csapex::TransformPublisher: 3
-  csapex::VelodyneSegmentation: 1
-  csapex::VelodyneUndistortion: 1
-  csapex::ImportRos: 5
-  csapex::IMUIntegration: 1
-  csapex::ClustersToMarkerArray: 1
-  csapex::ColorPointCloud: 1
-  csapex::Clock: 1
-  csapex::ClusterPointcloud: 2
-  csapex::CloudRenderer: 3
-  csapex::LabelClusteredPointCloud: 1
-  csapex::LoamSegmentation: 1
-  csapex::Note: 1
-  csapex::StaticTransform: 2
-  csapex::TextDisplay: 15
-  csapex::TransformCloud: 1
-  csapex::ObjectDetector: 1
-  schoenbuch::LocalHazardField: 1
-  schoenbuch::PersonDetector: 1
-threads:
-  assignments:
-    - uuid: csapex::IMUIntegration_0
-      id: 1
-    - uuid: csapex::ImportRos_2
-      id: 1
-    - id: 1
-      uuid: csapex::TransformPublisher_0
-    - uuid: csapex::TransformInverter_1
-      id: 1
-    - uuid: csapex::DynamicTransform_0
-      id: 1
-    - uuid: csapex::ImportRos_3
-      id: 1
-    - uuid: csapex::VelodyneUndistortion_0
-      id: 1
-    - id: 1
-      uuid: csapex::ExportRos_0
-    - uuid: csapex::ImportRos_4
-      id: 1
-    - uuid: csapex::VelodyneSegmentation_0
-      id: 0
-    - uuid: csapex::ExportRos_5
-      id: 1
-    - uuid: csapex::ExportRos_6
-      id: 1
-    - uuid: csapex::ClusterPointcloud_1
-      id: 0
-    - id: 1
-      uuid: csapex::LabelClusteredPointCloud_0
-    - uuid: csapex::ColorPointCloud_0
-      id: 1
-    - id: 1
-      uuid: csapex::ExportRos_7
-    - uuid: csapex::ClustersToMarkerArray_0
-      id: 1
-    - id: 0
-      uuid: schoenbuch::LocalHazardField_0
-    - uuid: csapex::DynamicTransform_1
-      id: 1
-    - uuid: csapex::ExportRos_8
-      id: 1
-    - uuid: csapex::ExportRos_9
-      id: 1
-  groups:
-    - id: 2
-      name: Imu Tf
 adapters:
   []
 connections:
@@ -800,6 +800,25 @@ connections:
   - uuid: csapex::VelodyneSegmentation_0:|:out_1
     targets:
       - csapex::ExportRos_5:|:in_0
+  - uuid: csapex::ClustersToMarkerArray_0:|:out_0
+    targets:
+      - csapex::ExportRos_7:|:in_0
+  - uuid: csapex::DynamicTransform_1:|:out_0
+    targets:
+      - schoenbuch::LocalHazardField_0:|:in_1
+  - uuid: csapex::ImportRos_3:|:out_0
+    targets:
+      - csapex::VelodyneUndistortion_0:|:in_0
+  - uuid: csapex::VelodyneUndistortion_0:|:out_0
+    targets:
+      - csapex::ExportRos_0:|:in_0
+      - csapex::VelodyneSegmentation_0:|:in_0
+  - uuid: csapex::ColorPointCloud_0:|:out_0
+    targets:
+      - csapex::ExportRos_6:|:in_0
+  - uuid: csapex::LabelClusteredPointCloud_0:|:out_0
+    targets:
+      - csapex::ColorPointCloud_0:|:in_0
   - uuid: csapex::IMUIntegration_0:|:out_0
     targets:
       - csapex::TransformInverter_1:|:in_0
@@ -828,22 +847,3 @@ connections:
   - uuid: csapex::ImportRos_4:|:out_0
     targets:
       - csapex::IMUIntegration_0:|:in_0
-  - uuid: csapex::LabelClusteredPointCloud_0:|:out_0
-    targets:
-      - csapex::ColorPointCloud_0:|:in_0
-  - uuid: csapex::ColorPointCloud_0:|:out_0
-    targets:
-      - csapex::ExportRos_6:|:in_0
-  - uuid: csapex::VelodyneUndistortion_0:|:out_0
-    targets:
-      - csapex::ExportRos_0:|:in_0
-      - csapex::VelodyneSegmentation_0:|:in_0
-  - uuid: csapex::ImportRos_3:|:out_0
-    targets:
-      - csapex::VelodyneUndistortion_0:|:in_0
-  - uuid: csapex::DynamicTransform_1:|:out_0
-    targets:
-      - schoenbuch::LocalHazardField_0:|:in_1
-  - uuid: csapex::ClustersToMarkerArray_0:|:out_0
-    targets:
-      - csapex::ExportRos_7:|:in_0
