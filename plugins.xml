@@ -3,6 +3,10 @@
   <description>Outdoor object detection for the Schönbuch Project.</description>
   <tags>Schönbuch, schoenbuch</tags>
 </class>
+<class type="schoenbuch::LocalHazardField" base_class_type="csapex::Node">
+  <description>Represents a short term memory of obstacles</description>
+  <tags>Vision, Obstacle Detection, Schönbuch, schoenbuch</tags>
+</class>
 <class type="schoenbuch::PersonDetector" base_class_type="csapex::Node">
   <description>Detects people-like objects in the velodyne scan.</description>
   <tags>Schönbuch, schoenbuch</tags>

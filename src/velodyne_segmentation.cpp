@@ -53,6 +53,15 @@ public:
 
     void setupParameters(csapex::Parameterizable& params) override
     {
+        params.addParameter(param::ParameterFactory::declareRange("max floor height",
+                                                                  -5.0, 5.0, -0.25, 0.01),
+                            max_floor_height_);
+        params.addParameter(param::ParameterFactory::declareAngle("max floor angle",
+                                                                   M_PI / 4),
+                            max_floor_angle_);
+        params.addParameter(param::ParameterFactory::declareAngle("min obstacle angle",
+                                                                   M_PI / 3),
+                            min_obstacle_angle_);
     }
 
     void process()
@@ -97,7 +106,7 @@ public:
         objects = floor;
         objects.ns = "objects";
 
-        auto add_triangle = [&floor, &objects, &out](const pcl::PointXYZI& ca, const pcl::PointXYZI& cb, const pcl::PointXYZI& cc) {
+        auto add_triangle = [this, &floor, &objects, &out](const pcl::PointXYZI& ca, const pcl::PointXYZI& cb, const pcl::PointXYZI& cc) {
 
 
             tf::Vector3 a(ca.x, ca.y, ca.z);
@@ -124,9 +133,9 @@ public:
 
             double mz = std::min(pa.z, std::min(pb.z, pc.z));
 
-            if(tilt < M_PI / 4) {
+            if(tilt < max_floor_angle_) {
 
-                if(mz < -0.25) {
+                if(mz < max_floor_height_) {
                     floor.points.push_back(pa);
                     floor.points.push_back(pb);
                     floor.points.push_back(pc);
@@ -142,7 +151,7 @@ public:
                     floor.colors.push_back(color);
                 }
 
-            } else if(tilt > M_PI / 3) {
+            } else if(tilt > min_obstacle_angle_) {
                 //if(mz > -0.25) {
                     objects.points.push_back(pa);
                     objects.points.push_back(pb);
@@ -412,6 +421,10 @@ private:
     Input* in_;
     Output* out_;
     Output* out_marker_;
+
+    double max_floor_height_;
+    double max_floor_angle_;
+    double min_obstacle_angle_;
 };
 
 
