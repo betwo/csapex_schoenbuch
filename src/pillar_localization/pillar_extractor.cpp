@@ -93,7 +93,7 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
 
             for(std::size_t i = 0, n = row_clusters[row].size(); i < n; ++i) {
                 Cluster* c  = row_clusters[row][i];
-                if((int) c->pts.size() < cluster_min_size_ || c->pts.size() > cluster_max_size_) {
+                if((int) c->pts.size() < cluster_min_size_ || (int) c->pts.size() > cluster_max_size_) {
                     c->clear();
 
                 } else if(cluster_max_diameter_ > 0.0) {
