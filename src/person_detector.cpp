@@ -159,7 +159,7 @@ public:
 
                         if(jump_distance > cluster_distance_ring_) {
                             // new cluster
-                            if(current_cluster->pts.size() >= cluster_min_size_) {
+                            if((int) current_cluster->pts.size() >= cluster_min_size_) {
                                 clusters.push_back(Cluster());
                                 current_cluster = &clusters.back();
                                 row_clusters[row].push_back(current_cluster);
@@ -178,7 +178,7 @@ public:
 
                 for(std::size_t i = 0, n = row_clusters[row].size(); i < n; ++i) {
                     Cluster* c  = row_clusters[row][i];
-                    if(c->pts.size() < cluster_min_size_ || c->pts.size() > cluster_max_size_) {
+                    if((int) c->pts.size() < cluster_min_size_ || (int) c->pts.size() > cluster_max_size_) {
                         c->clear();
 
                     } else if(cluster_max_diameter_ > 0.0) {
@@ -288,7 +288,7 @@ public:
             NAMED_INTERLUDE(filter);
             for(std::vector<Cluster>::iterator it = clusters.begin(); it != clusters.end();) {
                 Cluster& c = *it;
-                bool too_few_points = c.pts.size() < person_min_pts_;
+                bool too_few_points = (int) c.pts.size() < person_min_pts_;
                 bool wrong_height = c.getHeight() < person_height_.first || c.getHeight() > person_height_.second;
                 bool wrong_width = c.getWidth() < person_width_.first || c.getWidth() > person_width_.second;
                 bool remove = too_few_points || wrong_height || wrong_width;

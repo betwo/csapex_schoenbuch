@@ -282,16 +282,16 @@ public:
         floor.scale.y = 1.0;
         floor.scale.z = 1.0;
 
-        auto calc_z = [](const Eigen::Hyperplane<double, 3>& plane, geometry_msgs::Point& pt){
-            // ax + by + cz + d = 0
-            // -> z = (-ax - by - d) / c
-            auto coeffs = plane.coeffs();
-            pt.z = (-coeffs[0] * pt.x - coeffs[1] * pt.y - coeffs[3]) / coeffs[2];
-            //            Eigen::Vector3d ptl_proj = plane.projection(Eigen::Vector3d(pt.x,pt.y,0));
-            //            pt.z = ptl_proj(2);
-        };
+//        auto calc_z = [](const Eigen::Hyperplane<double, 3>& plane, geometry_msgs::Point& pt){
+//            // ax + by + cz + d = 0
+//            // -> z = (-ax - by - d) / c
+//            auto coeffs = plane.coeffs();
+//            pt.z = (-coeffs[0] * pt.x - coeffs[1] * pt.y - coeffs[3]) / coeffs[2];
+//            //            Eigen::Vector3d ptl_proj = plane.projection(Eigen::Vector3d(pt.x,pt.y,0));
+//            //            pt.z = ptl_proj(2);
+//        };
 
-        Eigen::Vector3d z = Eigen::Vector3d::UnitZ();
+//        Eigen::Vector3d z = Eigen::Vector3d::UnitZ();
 
         //        for(int row = 1; row < rows; ++row) {
         //            for(int col = 1; col < cols; ++col) {
