@@ -24,6 +24,7 @@ public:
 public:
     double cluster_distance_ring_;
     double cluster_distance_vertical_;
+    double cluster_distance_euclidean_;
 
     int cluster_min_size_;
     int cluster_max_size_;

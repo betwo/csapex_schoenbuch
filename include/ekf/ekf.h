@@ -13,7 +13,7 @@ struct EKF {
 
     void setPillars(const std::vector<Pillar>& pillars);
 
-    void predict(const Eigen::Vector3d &delta,
+    bool predict(const Eigen::Vector3d &delta,
                  double v, double omega, double dt);
 
     void correct(const std::vector<Pillar> &z);
@@ -49,6 +49,8 @@ struct EKF {
 
 private:
     void updateMeasurement(const std::vector<Pillar>& z);
+
+    bool findAbsolutePose(const std::vector<Pillar> &z, Eigen::Matrix3d &pose);
 };
 
 #endif // EKF_H

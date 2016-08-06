@@ -1,5 +1,5 @@
 /// HEADER
-#include "pillar_localization/pillar_extractor.h"
+#include <pillar_localization/pillar_extractor.h>
 
 /// SYSTEM
 #include <sensor_msgs/PointCloud2.h>
@@ -11,6 +11,7 @@
 
 
 PillarExtractor::PillarExtractor()
+    : cluster_distance_euclidean_(0.0)
 {
 
 }
@@ -50,6 +51,7 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
 
 
     {
+        // generate segments
         clusters.reserve(points.size());
         row_clusters.resize(rows);
 
@@ -105,6 +107,7 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
     }
 
     {
+        // cluster row based
         bool change = true;
         while(change) {
             change = false;
@@ -155,6 +158,7 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
     }
 
     // filter intensity
+    std::vector<Cluster*> filtered_clusters;
     for(std::size_t i = 0, n = clusters.size(); i < n; ++i) {
         Cluster& c = clusters[i];
         if(c.pts.size() < pillar_min_points_) {
@@ -170,7 +174,40 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
 
             if(intensities.back() < pillar_min_intensity_) {
                 c.clear();
+            } else {
+                filtered_clusters.push_back(&c);
             }
+        }
+    }
+
+
+    {
+        // cluster euclidean
+        for(std::vector<Cluster*>::iterator it = filtered_clusters.begin(); it != filtered_clusters.end();++it) {
+            Cluster* c1 = *it;
+            if(!c1->empty()) {
+                for(std::vector<Cluster*>::iterator it2 = it + 1; it2 != filtered_clusters.end();++it2) {
+                    Cluster* c2 = *it2;
+                    if(c1 != c2 && !c2->empty()) {
+                        for(std::size_t k = 0, n = c1->pts.size(); k < n; ++k) {
+                            Point* p1 = c1->pts[k];
+                            bool merged = false;
+                            for(std::size_t l = 0, n = c2->pts.size(); l < n; ++l) {
+                                Point* p2 = c2->pts[l];
+                                double distance = p1->distanceXYZ(*p2);
+                                if(distance < cluster_distance_euclidean_) {
+                                    c1->merge(c2);
+                                    ROS_INFO_STREAM("euclidean merging");
+                                    merged = true;
+                                    break;
+                                }
+                            }
+                            if(merged) break;
+                        }
+                    }
+                }
+            }
+
         }
     }
 
@@ -199,7 +236,7 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
         double error = fitCylinder(c.pts, r, C, W);
 
 
-        if(error < 1e-5 &&
+        if(error < 1e-4 &&
                 r > pillar_radius_ - pillar_radius_fuzzy_ &&
                 r < pillar_radius_ + pillar_radius_fuzzy_) {
             Pillar p;
@@ -207,6 +244,15 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
             p.up = W;
             p.measured_radius = r;
             pillars.push_back(p);
+
+            ROS_INFO_STREAM("found pillar with " << c.pts.size() << " points" <<
+                            ", error: " << error << ". r: " << r <<
+                            ", up: " << W << ", centre: " << C);
+        } else {
+
+            ROS_WARN_STREAM("reject pillar with " << c.pts.size() << " points" <<
+                            ", error: " << error << ". r: " << r <<
+                            ", up: " << W << ", centre: " << C);
         }
     }
 
@@ -286,7 +332,7 @@ double PillarExtractor::G(std::size_t n,
     Eigen::Matrix3d P = Eigen::Matrix3d::Identity() - W * W.transpose();
     Eigen::Matrix3d S;
     S << 0, -W(2), W(1),
-            0, -W(0), -W(1),
+            W(2), 0, -W(0),
             -W(1), W(0), 0;
     Eigen::Matrix3d A = Eigen::Matrix3d::Zero();
     Eigen::Vector3d B = Eigen::Vector3d::Zero();

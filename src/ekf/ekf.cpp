@@ -30,20 +30,20 @@ EKF::EKF()
     I = Eigen::Matrix3d::Identity();
 
     R = Eigen::Matrix3d::Identity();
-    R(0,0) = pow(0.15, 2);
-    R(1,1) = pow(0.15, 2);
-    R(2,2) = pow(0.1, 2);
+    R(0,0) = pow(0.1, 2);
+    R(1,1) = pow(0.1, 2);
+    R(2,2) = pow(0.3, 2);
 
     //    Q =  Eigen::Matrix3d::Identity() * pow(10.0, 2);
     Q = Eigen::Matrix3d::Identity();
     Q(0,0) = pow(0.35, 2);
     Q(1,1) = pow(0.35, 2);
-    Q(2,2) = pow(0.6, 2);
+    Q(2,2) = pow(0.5, 2);
 
     Q_abs = Eigen::Matrix3d::Identity();
-    Q_abs(0,0) = pow(0.20, 2);
-    Q_abs(1,1) = pow(0.20, 2);
-    Q_abs(2,2) = pow(0.5, 2);
+    Q_abs(0,0) = pow(0.05, 2);
+    Q_abs(1,1) = pow(0.05, 2);
+    Q_abs(2,2) = pow(0.001, 2);
 
 
     dist_threshold_ = 1.0;
@@ -79,22 +79,33 @@ void EKF::setPillars(const std::vector<Pillar>& pillars)
     dist_2_ = (ab).norm();
     dist_3_ = (bc).norm();
 
-    initialized_ = false;
+    Eigen::Matrix3d pose;
+    if(!findAbsolutePose(pillars, pose)) {
+        throw std::runtime_error("cannot initialize, pillars are not detected correctly");
+    }
 
-    correctAbsolute(pillars);
+    initial_pose_ = pose;
+    initial_pose_inv_ = pose.inverse();
+
+    Eigen::Matrix2d rot = pose.block<2,2>(0,0);
+    Eigen::Vector2d x = rot * Eigen::Vector2d(1,0);
+    mu(2) = std::atan2(x(1), x(0));
+
+    mu(0) = pose(0,2);
+    mu(1) = pose(1,2);
+
+    initialized_ = true;
 }
 
-void EKF::predict(const Eigen::Vector3d& delta, double _v, double _omega, double dt)
+bool EKF::predict(const Eigen::Vector3d& delta, double _v, double _omega, double dt)
 {
     double theta = mu(2);
 
-    double f = 0.7;
+    double omega = delta(2) / dt;
+    double v = delta(0) / dt;
 
-    double omega = f * _omega;
-    double v = f * _v;
-
-    if(std::abs(v) < 1e-10 && std::abs(omega) < 1e-10) {
-        return;
+    if(std::abs(_v) < 1e-1 && std::abs(_omega) < 1e-1) {
+        return false;
     }
 
     if(omega == 0.0) {
@@ -102,9 +113,9 @@ void EKF::predict(const Eigen::Vector3d& delta, double _v, double _omega, double
     }
 
     Eigen::Vector3d g;
-    //    g <<    v / omega * (sin(theta + omega * dt) - sin(theta)),
-    //            v / omega * (cos(theta) - cos(theta + omega * dt)),
-    //            omega * dt;
+//    g <<    v / omega * (sin(theta + omega * dt) - sin(theta)),
+//            v / omega * (cos(theta) - cos(theta + omega * dt)),
+//            omega * dt;
     g << std::cos(theta) * delta(0) - std::sin(theta) * delta(1),
             std::sin(theta) * delta(0) + std::cos(theta) * delta(1),
             delta(2);
@@ -114,9 +125,12 @@ void EKF::predict(const Eigen::Vector3d& delta, double _v, double _omega, double
             0, 0, 1;
 
     mu += g;
+
     P = G * P * G.transpose() + R;
 
     mu(2) = normalizeAngle(mu(2));
+
+    return true;
 }
 
 
@@ -127,23 +141,33 @@ void EKF::correct(const std::vector<Pillar>& z)
     } else {
         correctLandmark(z);
     }
+
+    updateMeasurement(z);
 }
 
 void EKF::updateMeasurement(const std::vector<Pillar>& z)
 {
     meas_pillars_.clear();
 
-    for(std::size_t i = 0; i < std::min((std::size_t) 3, z.size()); ++i) {
-        Eigen::Vector3d p_i = z[i].centre;
+    Eigen::Matrix4d fixed_t_robot;
+    fixed_t_robot << std::cos(mu(2)), -std::sin(mu(2)), 0, mu(0),
+            std::sin(mu(2)), std::cos(mu(2)), 0, mu(1),
+            0, 0, 1, 0,
+            0, 0, 0, 1;
 
-        meas_pillars_.push_back(p_i);
+    for(std::size_t i = 0; i < std::min((std::size_t) 3, z.size()); ++i) {
+        Eigen::Vector4d p_i_robot;
+        p_i_robot.block<3,1>(0,0) = z[i].centre;
+        p_i_robot(3,0) = 1;
+
+        Eigen::Vector4d p_i = fixed_t_robot * p_i_robot;
+
+        meas_pillars_.push_back(p_i.block<3,1>(0,0).eval());
     }
 }
 
 void EKF::correctLandmark(const std::vector<Pillar>& z)
 {
-    updateMeasurement(z);
-
     std::size_t N = pillars_.size();
 
     std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix3d> > S(N);
@@ -181,7 +205,7 @@ void EKF::correctLandmark(const std::vector<Pillar>& z)
         std::size_t ji = 0;
         for(std::size_t k = 0; k < N; ++k) {
             Eigen::Vector3d dz = z_i - z_hat[k];
-//            dz(2) = angleDiff(z_i(2), z_hat[k](2));
+            //            dz(2) = angleDiff(z_i(2), z_hat[k](2));
             double norm = std::sqrt((2 * M_PI * S[k]).determinant());
             double p = norm * std::exp(-0.5 * dz.transpose() * S[k].inverse() * dz);
             if(p > max_p) {
@@ -194,7 +218,7 @@ void EKF::correctLandmark(const std::vector<Pillar>& z)
             K[i] = P * H[ji].transpose() * S[ji].inverse();
 
             Eigen::Vector3d dz = z_i - z_hat[ji];
-//            dz(2) = angleDiff(z_i(2), z_hat[ji](2));
+            //            dz(2) = angleDiff(z_i(2), z_hat[ji](2));
 
             ROS_WARN_STREAM("z_i:  " << z_i);
             ROS_WARN_STREAM("z_ih: " <<  z_hat[ji]);
@@ -209,9 +233,53 @@ void EKF::correctLandmark(const std::vector<Pillar>& z)
 
 }
 
-bool EKF::correctAbsolute(const std::vector<Pillar>& z, bool fix)
+bool EKF::correctAbsolute(const std::vector<Pillar>& pillars, bool fix)
 {
-    updateMeasurement(z);
+    if(!initialized_) {
+        return false;
+    }
+
+    Eigen::Matrix3d pose;
+
+    if(!findAbsolutePose(pillars, pose)) {
+        return false;
+    }
+
+    Eigen::Matrix3d rel_pose = initial_pose_inv_ * pose;
+    Eigen::Matrix2d rot = rel_pose.block<2,2>(0,0);
+
+    Eigen::Vector2d x = rot * Eigen::Vector2d(1,0);
+    double yaw = std::atan2(x(1), x(0));
+
+    Eigen::Vector3d p = rel_pose.col(2);
+    Eigen::Vector3d z(p(0), p(1), yaw);
+
+    if(fix) {
+        mu = z;
+        P = Q_abs;
+
+    } else {
+        Eigen::Vector3d hx = mu;
+
+        Eigen::Matrix3d H = I;
+
+        Eigen::Matrix3d K = P * H.transpose() * (H * P * H.transpose() + Q_abs).inverse();
+
+        Eigen::Vector3d innovation = z - hx;
+        // special case -> angle wrap
+        innovation(2) = angleDiff(z(2), hx(2));
+
+        mu = mu + K * innovation;
+        mu(2) = normalizeAngle(mu(2));
+
+        P = (I - K * H) * P;
+    }
+
+    return true;
+}
+
+bool EKF::findAbsolutePose(const std::vector<Pillar>& z, Eigen::Matrix3d &pose)
+{
     assert(z.size() >= 3);
 
     const Eigen::Vector3d& a = z[0].centre;
@@ -268,58 +336,13 @@ bool EKF::correctAbsolute(const std::vector<Pillar>& z, bool fix)
         Eigen::Vector3d origin(std::cos(yaw) * anchor.x() - std::sin(yaw) * anchor.y(),
                                std::sin(yaw) * anchor.x() + std::cos(yaw) * anchor.y(),
                                0);
-        Eigen::Matrix3d pose;
         pose << std::cos(yaw), -std::sin(yaw), -origin(0),
                 std::sin(yaw), std::cos(yaw), -origin(1),
                 0, 0, 1;
 
-        if(!initialized_) {
-            initial_pose_ = pose;
-            initial_pose_inv_ = pose.inverse();
-            initial_pose_yaw_ = yaw;
-
-
-            for(std::size_t i = 0; i < pillars_.size(); ++i) {
-                Eigen::Matrix3d p;
-                p << 1, 0, pillars_[i].centre(0),
-                        0, 1, pillars_[i].centre(1),
-                        0, 0, 1;
-                pillars_[i].centre = (initial_pose_inv_ * p).col(2);
-            }
-
-            initialized_ = true;
-
-        } else {
-            Eigen::Matrix3d rel_pose = initial_pose_inv_ * pose;
-            double rel_yaw = yaw - initial_pose_yaw_;
-
-            Eigen::Vector3d p = rel_pose.col(2);
-            Eigen::Vector3d z(p(0), p(1), rel_yaw);
-
-            if(fix) {
-                mu = z;
-                P = Q_abs;
-
-            } else {
-                Eigen::Vector3d hx = mu;
-
-                Eigen::Matrix3d H = I;
-
-                Eigen::Matrix3d K = P * H.transpose() * (H * P * H.transpose() + Q_abs).inverse();
-
-                Eigen::Vector3d innovation = z - hx;
-                // special case -> angle wrap
-                innovation(2) = angleDiff(z(2), hx(2));
-
-                mu = mu + K * innovation;
-                mu(2) = normalizeAngle(mu(2));
-
-                P = (I - K * H) * P;
-            }
-        }
-
         return true;
-    }
 
-    return false;
+    } else {
+        return false;
+    }
 }
