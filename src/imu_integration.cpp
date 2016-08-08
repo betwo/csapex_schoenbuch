@@ -47,6 +47,7 @@ public:
 
         params.addParameter(param::ParameterFactory::declareAngle("offset/roll", 0.00), offset_roll_);
         params.addParameter(param::ParameterFactory::declareAngle("offset/pitch", 0.00), offset_pitch_);
+        params.addParameter(param::ParameterFactory::declareRange("drift/yaw", -1.10, 1.10, 0.00, 0.0001), drift_yaw_);
     }
 
     void reset()
@@ -85,9 +86,11 @@ public:
         p += offset_pitch_;
         r += offset_roll_;
 
-        y = tf::getYaw(world_T_imu.getRotation());
+        //y = tf::getYaw(world_T_imu.getRotation());
+        y = tf::getYaw(world_T_base_link.getRotation());
+//        y = tf::getYaw(current_pose_odom.getRotation());
 
-        rotation_mat.setEulerYPR(tf::getYaw(current_pose_odom.getRotation()),p,r);
+        rotation_mat.setEulerYPR(y,p,r);
         tf::Quaternion rotation_base_link;
         rotation_mat.getRotation(rotation_base_link);
 
@@ -96,12 +99,20 @@ public:
             world_T_base_link.setRotation(rotation_base_link);
 
             tf::Transform delta_base_link = last_pose_odom.inverse() * current_pose_odom;
+
+            //delta_base_link.setRotation(tf::createQuaternionFromYaw(drift_yaw_) * delta_base_link.getRotation());
+
+            tf::Transform drift(tf::createQuaternionFromYaw(drift_yaw_), tf::Vector3(0,0,0));
+            delta_base_link = drift * delta_base_link;
+
             world_T_base_link = world_T_base_link * delta_base_link;
 
-
+        } else {
+            world_T_base_link.setRotation(rotation_base_link);
         }
 
-        world_T_base_link.setRotation(rotation_base_link);
+//        world_T_base_link.setRotation(rotation_base_link);
+//        world_T_base_link.setRotation(tf::createQuaternionFromYaw(drift_yaw_) * world_T_base_link.getRotation());
 
         last_imu = imu;
         last_pose_odom = current_pose_odom;
@@ -143,6 +154,7 @@ private:
 
     double offset_roll_;
     double offset_pitch_;
+    double drift_yaw_;
 };
 
 }
