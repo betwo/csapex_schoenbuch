@@ -12,8 +12,8 @@
 #include <csapex_ros/yaml_io.hpp>
 #include <csapex_ros/ros_message_conversion.h>
 #include <csapex/view/utility/color.hpp>
-#include <csapex/utility/timer.h>
-#include <csapex/utility/interlude.hpp>
+#include <csapex/profiling/timer.h>
+#include <csapex/profiling/interlude.hpp>
 #include <csapex_ros/tf_listener.h>
 
 /// SYSTEM

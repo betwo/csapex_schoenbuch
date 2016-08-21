@@ -9,11 +9,11 @@
 #include <csapex/model/node_modifier.h>
 #include <csapex/utility/register_apex_plugin.h>
 #include <csapex_point_cloud/point_cloud_message.h>
-#include <csapex/utility/timer.h>
+#include <csapex/profiling/timer.h>
 #include <csapex_ros/yaml_io.hpp>
 #include <csapex_ros/ros_message_conversion.h>
 #include <csapex_transform/transform_message.h>
-#include <csapex/utility/interlude.hpp>
+#include <csapex/profiling/interlude.hpp>
 
 using namespace csapex;
 using namespace csapex::connection_types;

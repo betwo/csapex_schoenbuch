@@ -129,7 +129,7 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
                                 for(std::size_t k = 0, n = c1->pts.size(); k < n; ++k) {
                                     Point* p1 = c1->pts[k];
                                     bool merged = false;
-                                    for(std::size_t l = 0, n = c2->pts.size(); l < n; ++l) {
+                                    for(std::size_t l = 0, m = c2->pts.size(); l < m; ++l) {
                                         Point* p2 = c2->pts[l];
                                         double distance = p1->distanceXY(*p2);
                                         if(distance < cluster_distance_vertical_) {
