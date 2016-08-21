@@ -39,4 +39,8 @@
   <description>Splits a pointcloud into segments</description>
   <tags>Schönbuch, schoenbuch</tags>
 </class>
+<class type="csapex::SplitClusters" base_class_type="csapex::Node">
+  <description>Splits clusters into smaller clusters</description>
+  <tags>Schönbuch, schoenbuch, Vision, Person Detection</tags>
+</class>
 </library>

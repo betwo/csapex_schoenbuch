@@ -71,6 +71,7 @@ add_library(schoenbuch_node
     src/velodyne_undistortion.cpp
     src/loam_segmentation.cpp
     src/velodyne_segmentation.cpp
+    src/split_clusters.cpp
 
     src/local_scrolling_map.cpp
     src/local_hazard_field.cpp
