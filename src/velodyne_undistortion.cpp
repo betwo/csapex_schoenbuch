@@ -83,30 +83,24 @@ public:
 
         std::string fixed_frame = "/odom";
 
-        while(!tfl_.waitForTransform(
-                  fixed_frame,
-                  input->header.frame_id,
-                  start_time,
-                  ros::Duration(0.3)))
+        if(!tfl_.waitForTransform(
+                    fixed_frame,
+                    input->header.frame_id,
+                    start_time,
+                    ros::Duration(0.3)))
         {
-            awarn << "waiting for start transform from " << input->header.frame_id << " to odom at time " << start_time << std::endl;
-            if(start_time < ros::Time::now() - ros::Duration(1.0) && !tfl_.canTransform(input->header.frame_id, fixed_frame, start_time)) {
-                aerr << "cannot transform cloud at time " << end_time << ", now is " << ros::Time::now()<< std::endl;
-                return;
-            }
+            aerr << "cannot transform cloud at time " << end_time << ", now is " << ros::Time::now()<< std::endl;
+            return;
         }
 
-        while(!tfl_.waitForTransform(
-                  fixed_frame,
-                  input->header.frame_id,
-                  end_time,
-                  ros::Duration(0.3)))
+        if(!tfl_.waitForTransform(
+                    fixed_frame,
+                    input->header.frame_id,
+                    end_time,
+                    ros::Duration(0.3)))
         {
-            awarn << "waiting for end transform from " << input->header.frame_id << " to odom at time " << end_time << std::endl;
-            if(end_time < ros::Time::now() - ros::Duration(1.0) && !tfl_.canTransform(input->header.frame_id, fixed_frame, end_time)) {
-                aerr << "cannot transform cloud at time " << end_time << ", now is " << ros::Time::now() << std::endl;
-                return;
-            }
+            aerr << "cannot transform cloud at time " << end_time << ", now is " << ros::Time::now() << std::endl;
+            return;
         }
 
         tf::StampedTransform fixed_T_end;
