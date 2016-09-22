@@ -1,3 +1,10 @@
+<library path="libschoenbuch_core">
+<class type="csapex::RegisterSchoenbuch" base_class_type="csapex::CorePlugin">
+  <description></description>
+</class>
+</library>
+
+
 <library path="libschoenbuch_node">
 <class type="csapex::ObjectDetector" base_class_type="csapex::Node">
   <description>Outdoor object detection for the Schönbuch Project.</description>
@@ -46,8 +53,13 @@
 <class type="csapex::SplitClusters" base_class_type="csapex::Node">
   <description>Splits clusters into smaller clusters</description>
   <tags>Schönbuch, schoenbuch, Vision, Person Detection</tags>
+</class>
 <class type="csapex::ObjectTracker" base_class_type="csapex::Node">
   <description>Tracks clusters of objects</description>
+  <tags>Schönbuch, schoenbuch</tags>
+</class>
+<class type="csapex::PersonTracker" base_class_type="csapex::Node">
+  <description>Tracks clusters of objects and publishes included people</description>
   <tags>Schönbuch, schoenbuch</tags>
 </class>
 </library>

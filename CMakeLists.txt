@@ -61,6 +61,18 @@ target_link_libraries(schoenbuch
     ${catkin_LIBRARIES}
 )
 
+
+add_library(schoenbuch_core SHARED
+    src/register_schoenbuch.cpp
+)
+
+
+target_link_libraries(schoenbuch_core
+    ${catkin_LIBRARIES}
+    ${csapex_LIBRARIES}
+)
+
+
 add_library(schoenbuch_node
     src/pillar_localization.cpp
     src/object_detector.cpp
@@ -73,6 +85,7 @@ add_library(schoenbuch_node
     src/velodyne_segmentation.cpp
     src/split_clusters.cpp
     src/object_tracker.cpp
+    src/person_tracker.cpp
 
     src/local_scrolling_map.cpp
     src/local_hazard_field.cpp
