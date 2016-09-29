@@ -46,10 +46,10 @@ struct Object
         pose = measurement;
         history.push_back(std::make_pair(time, measurement));
 
-        while(history.size() > velocity_interval_) {
+        while((int) history.size() > velocity_interval_) {
             history.pop_front();
         }
-        if(history.size() == velocity_interval_) {
+        if((int) history.size() == velocity_interval_) {
             tf::Vector3 delta = pose.getOrigin() - history.front().second.getOrigin();
             ros::Duration dt = time - history.front().first;
 

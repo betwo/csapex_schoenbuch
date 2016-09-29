@@ -18,6 +18,10 @@ PillarLocalization::PillarLocalization()
 {
     scan_duration_ = ros::Duration(1.0 / 10.0);
     scan_offset_ = ros::Duration(0.0);
+
+    if(ros::isStarted()) {
+        tfl_.reset(new tf::TransformListener);
+    }
 }
 
 void PillarLocalization::reset()
@@ -28,10 +32,20 @@ void PillarLocalization::reset()
     init_set_.clear();
 
     ekf_.reset();
+
+    tfl_.reset();
 }
 
 pcl::PointCloud<pcl::PointXYZI>::ConstPtr PillarLocalization::undistort(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input)
 {
+    if(!tfl_) {
+        if(ros::isStarted()) {
+            tfl_.reset(new tf::TransformListener);
+        } else {
+            throw std::runtime_error("cannot connect to ros master.");
+        }
+    }
+
     ros::Time start_time, end_time;
     end_time.fromNSec(input->header.stamp * 1e3);
     end_time += scan_offset_;
@@ -39,27 +53,27 @@ pcl::PointCloud<pcl::PointXYZI>::ConstPtr PillarLocalization::undistort(const pc
 
     std::string fixed_frame = "/odom";
 
-    while(!tfl_.waitForTransform(
+    while(!tfl_->waitForTransform(
               fixed_frame,
               input->header.frame_id,
               start_time,
               ros::Duration(0.3)))
     {
         ROS_WARN_STREAM("waiting for start transform from " << input->header.frame_id << " to odom at time " << start_time);
-        if(start_time < ros::Time::now() - ros::Duration(1.0) && !tfl_.canTransform(input->header.frame_id, fixed_frame, start_time)) {
+        if(start_time < ros::Time::now() - ros::Duration(1.0) && !tfl_->canTransform(input->header.frame_id, fixed_frame, start_time)) {
             ROS_WARN_STREAM("cannot transform cloud at time " << end_time << ", now is " << ros::Time::now());
             return input;
         }
     }
 
-    while(!tfl_.waitForTransform(
+    while(!tfl_->waitForTransform(
               fixed_frame,
               input->header.frame_id,
               end_time,
               ros::Duration(0.3)))
     {
         ROS_WARN_STREAM("waiting for end transform from " << input->header.frame_id << " to odom at time " << end_time);
-        if(end_time < ros::Time::now() - ros::Duration(1.0) && !tfl_.canTransform(input->header.frame_id, fixed_frame, end_time)) {
+        if(end_time < ros::Time::now() - ros::Duration(1.0) && !tfl_->canTransform(input->header.frame_id, fixed_frame, end_time)) {
             ROS_WARN_STREAM("cannot transform cloud at time " << end_time << ", now is " << ros::Time::now());
             return input;
         }
@@ -68,7 +82,7 @@ pcl::PointCloud<pcl::PointXYZI>::ConstPtr PillarLocalization::undistort(const pc
     ros::WallTime profile_start = ros::WallTime::now();
 
     tf::StampedTransform fixed_T_end;
-    tfl_.lookupTransform(fixed_frame, input->header.frame_id, end_time, fixed_T_end);
+    tfl_->lookupTransform(fixed_frame, input->header.frame_id, end_time, fixed_T_end);
 
     tf::Transform end_T_fixed = fixed_T_end.inverse();
 
@@ -86,7 +100,7 @@ pcl::PointCloud<pcl::PointXYZI>::ConstPtr PillarLocalization::undistort(const pc
 
     for(std::size_t c = 0; c < cols; ++c, stamp += delta) {
         tf::StampedTransform fixed_T_current;
-        tfl_.lookupTransform(fixed_frame, input->header.frame_id, stamp, fixed_T_current);
+        tfl_->lookupTransform(fixed_frame, input->header.frame_id, stamp, fixed_T_current);
         tf::Transform end_T_current = end_T_fixed * fixed_T_current;
 
         for(std::size_t r = 0; r < rows; ++r) {

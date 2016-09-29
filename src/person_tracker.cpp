@@ -398,6 +398,9 @@ public:
             obstacles_.reset(new pcl::PointCloud<pcl::PointXYZ>);
             obstacles_->header = cloud->header;
         }
+
+        obstacles_->header.stamp = cloud->header.stamp;
+
         if(!best_fit || !isPerson(*best_fit)) {
             for(const PointT& p : *cloud) {
                 pcl::PointXYZ pt;

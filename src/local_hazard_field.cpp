@@ -111,6 +111,11 @@ public:
         });
 
 
+        params.addParameter(param::ParameterFactory::declareTrigger("reset"), [this](param::Parameter* ){
+           update();
+        });
+
+
         next_decay_ = 0;
     }
 
@@ -171,6 +176,8 @@ public:
 
             typename pcl::PointCloud<PointT>::Ptr cloud_ptr(new pcl::PointCloud<PointT>);
             pcl::PointCloud<PointT>& c = *cloud_ptr;
+            c.header.frame_id = trafo->child_frame;
+            c.header.stamp = cloud->header.stamp;
 
             tf::Transform base2map = map2base.inverse();
 
@@ -183,6 +190,7 @@ public:
                 pcl_pt.z = pt.z();
                 c.push_back(pcl_pt);
             });
+
 
             auto message = std::make_shared<PointCloudMessage>(trafo->child_frame, cloud->header.stamp);
             message->value = cloud_ptr;

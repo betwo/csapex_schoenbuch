@@ -2,7 +2,7 @@
 #include <csapex/core/core_plugin.h>
 #include <csapex/utility/yaml_io.hpp>
 #include <csapex_ros/ros_message_conversion.h>
-#include <csapex/msg/generic_value_message.hpp>
+#include <csapex/msg/generic_pointer_message.hpp>
 #include <csapex_ros/yaml_io.hpp>
 
 /// SYSTEM
@@ -20,6 +20,10 @@ public:
 
     void init(CsApexCore& core)
     {
+        MessageFactory::registerDirectMessage<connection_types::GenericPointerMessage, person_msgs::Person>();
+        MessageSerializer::registerDirectMessage<connection_types::GenericPointerMessage, person_msgs::Person>();
+
+        connection_types::MessageConversionHook<connection_types::GenericPointerMessage, person_msgs::Person>::registerConversion();
     }
 
     void shutdown()

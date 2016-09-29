@@ -52,7 +52,7 @@ private:
     ros::Time last_stamp_;
     tf::Pose last_pose_;
 
-    tf::TransformListener tfl_;
+    std::shared_ptr<tf::TransformListener> tfl_;
     tf::StampedTransform pose_;
 
 

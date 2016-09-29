@@ -63,15 +63,15 @@ public:
         std::shared_ptr<sensor_msgs::Imu const> imu = msg::getMessage<sensor_msgs::Imu>(in_imu_);
         std::shared_ptr<nav_msgs::Odometry const> odom = msg::getMessage<nav_msgs::Odometry>(in_odom_);
 
-        auto trafo_msg = msg::getMessage<TransformMessage>(in_tf_imu_to_base_link_);
+//        auto trafo_msg = msg::getMessage<TransformMessage>(in_tf_imu_to_base_link_);
 
-        tf::Transform imu_T_base_link = trafo_msg->value;
-        tf::Transform base_link_T_imu = imu_T_base_link.inverse();
+//        tf::Transform imu_T_base_link = trafo_msg->value;
+//        tf::Transform base_link_T_imu = imu_T_base_link.inverse();
 
         tf::Transform current_pose_odom;
         tf::poseMsgToTF(odom->pose.pose, current_pose_odom);
 
-        tf::Transform world_T_imu = world_T_base_link * base_link_T_imu;
+//        tf::Transform world_T_imu = world_T_base_link * base_link_T_imu;
 
         tf::Quaternion rotation_imu;
         tf::quaternionMsgToTF(imu->orientation, rotation_imu);
