@@ -31,7 +31,7 @@ using namespace csapex::connection_types;
 namespace csapex
 {
 
-struct Object
+struct PersonObject
 {
     int id;
     tf::Pose pose;
@@ -46,7 +46,7 @@ struct Object
     int count;
     int person_count;
 
-    Object(int id, int velocity_interval, const tf::Pose& pose)
+    PersonObject(int id, int velocity_interval, const tf::Pose& pose)
         : id(id), pose(pose), velocity_interval_(velocity_interval), count(0), person_count(0)
     {
         vel = tf::Vector3(0,0,0);
@@ -120,7 +120,7 @@ public:
 
         params.addParameter(param::ParameterFactory::declareRange("velocity_interval", 1, 100, 10, 1), [this](param::Parameter* p){
             velocity_interval_ = p->as<int>();
-            for(Object& o : objects_) {
+            for(PersonObject& o : objects_) {
                 o.velocity_interval_ = velocity_interval_;
             }
         });
@@ -184,7 +184,7 @@ public:
                 std::make_shared<std::vector<std::shared_ptr<person_msgs::Person const>>>();
 
         for(auto it = objects_.begin(); it != objects_.end(); ) {
-            Object& obj = *it;
+            PersonObject& obj = *it;
             --obj.life;
             if(obj.life <= 0) {
                 if(tracking_id == obj.id) {
@@ -218,6 +218,8 @@ public:
                 marker.color.a = 0.2;
 
             } else {
+                ainfo << "person prob: " << obj.personProbability() << std::endl;
+                ainfo << obj.id << ": " << obj.count << " / " << obj.person_count << std::endl;
                 tf::Pose p = obj.pose;
                 p.setRotation(tf::createQuaternionFromYaw(std::atan2(obj.vel.y(), obj.vel.x())));
 
@@ -264,7 +266,7 @@ public:
         }
     }
 
-    bool isPerson(const Object& obj) const
+    bool isPerson(const PersonObject& obj) const
     {
         return obj.count >= velocity_interval_ && obj.personProbability() >= min_probability_;
     }
@@ -297,8 +299,8 @@ public:
             pose = trafo * pose;
 
             double min_dist = max_distance_;
-            Object* best_fit = nullptr;
-            for(Object& obj : objects_) {
+            PersonObject* best_fit = nullptr;
+            for(PersonObject& obj : objects_) {
                 double dist = (obj.pose.getOrigin() - pose.getOrigin()).length();
                 if(dist < min_dist) {
                     min_dist = dist;
@@ -385,8 +387,8 @@ public:
         pose = tmp_trafo_ * pose;
 
         double min_dist = max_distance_;
-        Object* best_fit = nullptr;
-        for(Object& obj : objects_) {
+        PersonObject* best_fit = nullptr;
+        for(PersonObject& obj : objects_) {
             double dist = (obj.pose.getOrigin() - pose.getOrigin()).length();
             if(dist < min_dist) {
                 min_dist = dist;
@@ -435,7 +437,7 @@ private:
     std::string tracking_frame_;
     tf::Transform current_transform_;
 
-    std::vector<Object> objects_;
+    std::vector<PersonObject> objects_;
 
     int next_id;
     int tracking_id;
