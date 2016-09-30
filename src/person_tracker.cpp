@@ -24,6 +24,9 @@
 #include <person_msgs/Person.h>
 #include <pcl/common/common.h>
 #include <pcl/common/centroid.h>
+#include <pcl/common/pca.h>
+#include <pcl/common/io.h>
+#include <pcl/filters/voxel_grid.h>
 
 using namespace csapex;
 using namespace csapex::connection_types;
@@ -31,12 +34,23 @@ using namespace csapex::connection_types;
 namespace csapex
 {
 
-struct Object
+class PersonTracker;
+
+struct DynamicObject
 {
+    PersonTracker* tracker;
+
     int id;
+    tf::Pose first_pose;
     tf::Pose pose;
 
+    tf::Vector3 dim;
+
     std::deque<std::pair<ros::Time, tf::Pose>> history;
+
+    //pcl::VoxelGrid<pcl::PointXYZ> pts;
+    pcl::PointCloud<pcl::PointXYZ> pts;
+    pcl::PointCloud<pcl::PointXYZ> latest_pts;
 
     tf::Vector3 vel;
 
@@ -46,41 +60,27 @@ struct Object
     int count;
     int person_count;
 
-    Object(int id, int velocity_interval, const tf::Pose& pose)
-        : id(id), pose(pose), velocity_interval_(velocity_interval), count(0), person_count(0)
+
+    bool dynamic_;
+    bool person_;
+
+    DynamicObject(PersonTracker* tracker, int id, int velocity_interval, const tf::Pose& pose, const tf::Vector3& dim)
+        : tracker(tracker), id(id), first_pose(pose), pose(pose), dim(dim), velocity_interval_(velocity_interval), count(0), person_count(0), dynamic_(false), person_(false)
     {
+        double res = 0.05;
+        //pts.setLeafSize(res, res, res);
         vel = tf::Vector3(0,0,0);
     }
 
-    void update(const ros::Time& time, const tf::Pose& measurement)
-    {
-        pose = measurement;
-        history.push_back(std::make_pair(time, measurement));
+    void update(const ros::Time& time, const tf::Pose& measurement);
 
-        while(history.size() > (std::size_t) velocity_interval_) {
-            history.pop_front();
-        }
-        if(history.size() == (std::size_t) velocity_interval_) {
-            tf::Vector3 delta = pose.getOrigin() - history.front().second.getOrigin();
-            ros::Duration dt = time - history.front().first;
-
-            vel = (1.0 / dt.toSec()) * delta;
-        }
-
-        ++count;
-    }
-
-    double personProbability() const
-    {
-        if(count == 0) {
-            return 0.0;
-        }
-        return person_count / (double) count;
-    }
+    double personProbability() const;
 };
 
 class PersonTracker : public Node
 {
+    friend struct DynamicObject;
+
 public:
     PersonTracker()
         : has_current_transform_(false), next_id(0), tracking_id(-1)
@@ -107,6 +107,7 @@ public:
         out_marker_ = modifier.addOutput<visualization_msgs::MarkerArray>("Markers");
         out_people_ = modifier.addOutput<GenericVectorMessage, std::shared_ptr<person_msgs::Person>>("people");
         out_obstacles_ = modifier.addOutput<PointCloudMessage>("obstacles");
+        out_map_ = modifier.addOutput<PointCloudMessage>("obstacle_map");
     }
 
     void setupParameters(csapex::Parameterizable& params) override
@@ -117,10 +118,26 @@ public:
         params.addParameter(param::ParameterFactory::declareRange("look_ahead_duration", 0.0, 5.0, 1.5, 0.01), look_ahead_duration_);
 
         params.addParameter(param::ParameterFactory::declareRange("min_probability", 0.0, 1.0, 0.2, 0.001), min_probability_);
+        params.addParameter(param::ParameterFactory::declareRange("min_count", 1, 64, 10, 1), [this](param::Parameter*p) {
+            min_count_ = p->as<int>();
+        });
+        params.addParameter(param::ParameterFactory::declareRange("min_person_count", 1, 64, 3, 1), [this](param::Parameter*p) {
+            min_person_count_ = p->as<int>();
+        });
+
+        params.addParameter(param::ParameterFactory::declareRange("max_dx",
+                                                                  param::ParameterDescription("maximum deviation in the first principle componenent between two instances."),
+                                                                  0.0, 1.0, 0.2, 0.001), max_dx_);
+        params.addParameter(param::ParameterFactory::declareRange("max_dy",
+                                                                  param::ParameterDescription("maximum deviation in the second principle componenent between two instances."),
+                                                                  0.0, 1.0, 0.2, 0.001), max_dy_);
+        params.addParameter(param::ParameterFactory::declareRange("max_dz",
+                                                                  param::ParameterDescription("maximum deviation in height between two instances."),
+                                                                  0.0, 2.0, 1.0, 0.001), max_dz_);
 
         params.addParameter(param::ParameterFactory::declareRange("velocity_interval", 1, 100, 10, 1), [this](param::Parameter* p){
             velocity_interval_ = p->as<int>();
-            for(Object& o : objects_) {
+            for(DynamicObject& o : objects_) {
                 o.velocity_interval_ = velocity_interval_;
             }
         });
@@ -134,9 +151,9 @@ public:
 
     void process()
     {
-//        TokenDataConstPtr data = token->getTokenData();
-//        auto vector = msg::message_cast<GenericVectorMessage const>(data);
-//        auto msg = vector->template makeShared<PointCloudMessage::ConstPtr>();
+        //        TokenDataConstPtr data = token->getTokenData();
+        //        auto vector = msg::message_cast<GenericVectorMessage const>(data);
+        //        auto msg = vector->template makeShared<PointCloudMessage::ConstPtr>();
 
         auto m = msg::getMessage<GenericVectorMessage, PointCloudMessage::ConstPtr>(in_clusters_);
 
@@ -145,8 +162,8 @@ public:
             detections.push_back(token);
         }
 
-        if(obstacles_) {
-            obstacles_->points.clear();
+        if(raw_obstacles_) {
+            raw_obstacles_->points.clear();
         }
         process3dDetections(detections);
 
@@ -183,8 +200,13 @@ public:
         std::shared_ptr<std::vector<std::shared_ptr<person_msgs::Person const>>> person_vector =
                 std::make_shared<std::vector<std::shared_ptr<person_msgs::Person const>>>();
 
+        pcl::PointCloud<pcl::PointXYZ>::Ptr obstacles_map =
+                boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+        obstacles_map->header.frame_id = tracking_frame_;
+        obstacles_map->header.stamp = tmp_time_.toNSec() * 1e-3;
+
         for(auto it = objects_.begin(); it != objects_.end(); ) {
-            Object& obj = *it;
+            DynamicObject& obj = *it;
             --obj.life;
             if(obj.life <= 0) {
                 if(tracking_id == obj.id) {
@@ -202,22 +224,7 @@ public:
 
             marker.action = visualization_msgs::Marker::ADD;
 
-            if(!isPerson(obj)) {
-                geometry_msgs::Pose pose;
-                tf::poseTFToMsg(obj.pose, pose);
-
-                marker.pose = pose;
-
-                marker.type = visualization_msgs::Marker::CYLINDER;
-
-                marker.pose = pose;
-
-                marker.scale.x = 0.5;
-                marker.scale.y = 0.5;
-                marker.scale.z = 0.1;
-                marker.color.a = 0.2;
-
-            } else {
+            if(isPerson(obj)) {
                 tf::Pose p = obj.pose;
                 p.setRotation(tf::createQuaternionFromYaw(std::atan2(obj.vel.y(), obj.vel.x())));
 
@@ -239,6 +246,30 @@ public:
                 marker.scale.y = 0.1;
                 marker.scale.z = 0.1;
                 marker.color.a = 1;
+
+            } else {
+                if(obj.count > min_count_) {
+                    if(obj.dynamic_) {
+                        *obstacles_map += obj.latest_pts;
+
+                    } else {
+                        *obstacles_map += obj.pts;
+                    }
+                }
+
+                geometry_msgs::Pose pose;
+                tf::poseTFToMsg(obj.pose, pose);
+
+                marker.pose = pose;
+
+                marker.type = visualization_msgs::Marker::CYLINDER;
+
+                marker.pose = pose;
+
+                marker.scale.x = 0.5;
+                marker.scale.y = 0.5;
+                marker.scale.z = 0.1;
+                marker.color.a = 0.2;
             }
 
 
@@ -257,16 +288,21 @@ public:
 
         msg::publish<GenericVectorMessage, std::shared_ptr<person_msgs::Person const>>(out_people_, person_vector);
 
-        if(obstacles_) {
+
+        PointCloudMessage::Ptr obstacles_map_msg = std::make_shared<PointCloudMessage>(obstacles_map->header.frame_id, obstacles_map->header.stamp);
+        obstacles_map_msg->value = obstacles_map;
+        msg::publish(out_map_, obstacles_map_msg);
+
+        if(raw_obstacles_) {
             PointCloudMessage::Ptr obstacles = std::make_shared<PointCloudMessage>(tmp_frame_id_, tmp_time_.toNSec() * 1e-3);
-            obstacles->value = obstacles_;
+            obstacles->value = raw_obstacles_;
             msg::publish(out_obstacles_, obstacles);
         }
     }
 
-    bool isPerson(const Object& obj) const
+    bool isPerson(const DynamicObject& obj) const
     {
-        return obj.count >= velocity_interval_ && obj.personProbability() >= min_probability_;
+        return obj.person_;//obj.count >= velocity_interval_ && obj.personProbability() >= min_probability_;
     }
 
     void process2dDetection(const person_msgs::Person& person)
@@ -297,12 +333,17 @@ public:
             pose = trafo * pose;
 
             double min_dist = max_distance_;
-            Object* best_fit = nullptr;
-            for(Object& obj : objects_) {
-                double dist = (obj.pose.getOrigin() - pose.getOrigin()).length();
-                if(dist < min_dist) {
-                    min_dist = dist;
-                    best_fit = &obj;
+            DynamicObject* best_fit = nullptr;
+            for(DynamicObject& obj : objects_) {
+                double z = obj.dim.z();
+                if(z >= z_range_.first && z <= z_range_.second) {
+                    double dist = (obj.pose.getOrigin() - pose.getOrigin()).length();
+                    if(dist < min_dist) {
+                        min_dist = dist;
+                        best_fit = &obj;
+                    }
+                } else {
+                    ainfo << "object of height " << z << " not considered a person" << std::endl;
                 }
             }
 
@@ -356,6 +397,65 @@ public:
         Eigen::Matrix3f covariance;
         pcl::computeMeanAndCovarianceMatrix(*cloud, covariance, center);
 
+
+        typename pcl::PointCloud<pcl::PointXYZ>::Ptr xy_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::copyPointCloud(*cloud, *xy_cloud);
+        for(pcl::PointXYZ& pt : *xy_cloud) {
+            pt.z = 0.0;
+        }
+
+        pcl::PCA<pcl::PointXYZ> pca;
+        pca.setInputCloud(xy_cloud);
+
+        Eigen::Matrix3f eigen_vectors = pca.getEigenVectors();
+
+        Eigen::Vector3f principal_component = eigen_vectors.block<3,1>(0,0);
+        double theta = std::atan2(principal_component(1), principal_component(0));
+
+        // rotate points
+        for(pcl::PointXYZ& pt : *xy_cloud) {
+            pcl::PointXYZ rotated;
+            rotated.x = std::cos(-theta) * pt.x - std::sin(-theta) * pt.y;
+            rotated.y = std::sin(-theta) * pt.x + std::cos(-theta) * pt.y;
+            rotated.z = pt.z;
+            pt = rotated;
+        }
+
+        // find aabb
+        double x_min = std::numeric_limits<double>::infinity();
+        double x_max = -std::numeric_limits<double>::infinity();
+        double y_min = std::numeric_limits<double>::infinity();
+        double y_max = -std::numeric_limits<double>::infinity();
+
+        for(const pcl::PointXYZ& p : *xy_cloud) {
+            if(p.x < x_min) x_min = p.x;
+            if(p.x > x_max) x_max = p.x;
+            if(p.y < y_min) y_min = p.y;
+            if(p.y > y_max) y_max = p.y;
+        }
+
+        double z_min = std::numeric_limits<double>::infinity();
+        double z_max = -std::numeric_limits<double>::infinity();
+
+        const PointT* pt = &cloud->front();
+        for(std::size_t i = 0, n = cloud->points.size(); i < n; ++i, ++pt) {
+            const PointT& p = *pt;
+            if(p.z < z_min) z_min = p.z;
+            if(p.z > z_max) z_max = p.z;
+        }
+
+        double length = (x_max - x_min);
+        double width = (y_max - y_min);
+
+        if(width > length) {
+            std::swap(width, length);
+        }
+
+        double height = (z_max - z_min);
+
+        tf::Vector3 dim(length, width, height);
+
+
         geometry_msgs::PoseWithCovarianceStamped measurement;
         measurement.header.frame_id = tmp_frame_id_;
         measurement.header.stamp = tmp_time_;
@@ -373,11 +473,6 @@ public:
         tf::Transform pose;
         tf::poseMsgToTF(measurement.pose.pose, pose);
 
-        double z = pose.getOrigin().z();
-        if(z < z_range_.first || z > z_range_.second) {
-            return;
-        }
-
         if(std::isnan(tf::getYaw(pose.getRotation()))) {
             pose.setRotation(tf::createIdentityQuaternion());
         }
@@ -385,21 +480,30 @@ public:
         pose = tmp_trafo_ * pose;
 
         double min_dist = max_distance_;
-        Object* best_fit = nullptr;
-        for(Object& obj : objects_) {
+        DynamicObject* best_fit = nullptr;
+        for(DynamicObject& obj : objects_) {
             double dist = (obj.pose.getOrigin() - pose.getOrigin()).length();
             if(dist < min_dist) {
-                min_dist = dist;
-                best_fit = &obj;
+                double dx = std::abs(obj.dim.x() - dim.x());
+                if(dx < max_dx_) {
+                    double dy = std::abs(obj.dim.y() - dim.y());
+                    if(dy < max_dy_) {
+                        double dz = std::abs(obj.dim.z() - dim.z());
+                        if(dz < max_dz_) {
+                            min_dist = dist;
+                            best_fit = &obj;
+                        }
+                    }
+                }
             }
         }
 
-        if(!obstacles_) {
-            obstacles_.reset(new pcl::PointCloud<pcl::PointXYZ>);
-            obstacles_->header = cloud->header;
+        if(!raw_obstacles_) {
+            raw_obstacles_.reset(new pcl::PointCloud<pcl::PointXYZ>);
+            raw_obstacles_->header = cloud->header;
         }
 
-        obstacles_->header.stamp = cloud->header.stamp;
+        raw_obstacles_->header.stamp = cloud->header.stamp;
 
         if(!best_fit || !isPerson(*best_fit)) {
             for(const PointT& p : *cloud) {
@@ -407,14 +511,29 @@ public:
                 pt.x = p.x;
                 pt.y = p.y;
                 pt.z = p.z;
-                obstacles_->points.push_back(pt);
+                raw_obstacles_->points.push_back(pt);
             }
         }
 
         if(!best_fit) {
             ainfo << "new object at " << pose.getOrigin().x() << " / " << pose.getOrigin().y() << std::endl;
-            objects_.emplace_back(next_id++, velocity_interval_, pose);
+            objects_.emplace_back(this, next_id++, velocity_interval_, pose, dim);
             best_fit = &objects_.back();
+        } else {
+            best_fit->dim = dim;
+        }
+
+        best_fit->latest_pts.clear();
+
+        for(const PointT& pt : *cloud) {
+            tf::Vector3 point = tmp_trafo_ * tf::Vector3 (pt.x, pt.y, pt.z);
+            pcl::PointXYZ pcl_pt;
+            pcl_pt.x = point.x();
+            pcl_pt.y = point.y();
+            pcl_pt.z = point.z();
+            best_fit->pts.push_back(pcl_pt);
+
+            best_fit->latest_pts.push_back(pcl_pt);
         }
 
         best_fit->update(measurement.header.stamp, pose);
@@ -428,6 +547,7 @@ private:
     Output* out_marker_;
     Output* out_people_;
     Output* out_obstacles_;
+    Output* out_map_;
 
     ros::Time last_process_;
 
@@ -435,7 +555,7 @@ private:
     std::string tracking_frame_;
     tf::Transform current_transform_;
 
-    std::vector<Object> objects_;
+    std::vector<DynamicObject> objects_;
 
     int next_id;
     int tracking_id;
@@ -444,6 +564,12 @@ private:
     double look_ahead_duration_;
 
     double min_probability_;
+    double min_count_;
+    double min_person_count_;
+
+    double max_dx_;
+    double max_dy_;
+    double max_dz_;
 
     double max_distance_;
     std::pair<double, double> z_range_;
@@ -455,8 +581,55 @@ private:
     std::string tmp_frame_id_;
     ros::Time tmp_time_;
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr obstacles_;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr raw_obstacles_;
 };
+
+void DynamicObject::update(const ros::Time& time, const tf::Pose& measurement)
+{
+    pose = measurement;
+    history.push_back(std::make_pair(time, measurement));
+
+    while(history.size() > (std::size_t) velocity_interval_) {
+        history.pop_front();
+    }
+
+    if(history.size() == (std::size_t) velocity_interval_) {
+        tf::Vector3 delta = pose.getOrigin() - history.front().second.getOrigin();
+
+        if(!dynamic_) {
+            tf::Vector3 delta_start = pose.getOrigin() - first_pose.getOrigin();
+            if(delta_start.length() > 1.0) {
+                dynamic_ = true;
+            }
+        }
+
+        ros::Duration dt = time - history.front().first;
+
+        tf::Vector3 new_vel = (1.0 / dt.toSec()) * delta;
+        if(new_vel.length() < 0.25) {
+            // keep orientation for small velocities
+            vel = vel / vel.length() * new_vel.length();
+        } else {
+            vel = new_vel;
+        }
+    }
+
+    ++count;
+
+    if(!person_ && dynamic_) {
+        if(personProbability() > tracker->min_probability_) {
+            person_ = true;
+        }
+    }
+}
+
+double DynamicObject::personProbability() const
+{
+    if(count < tracker->min_count_ || person_count < tracker->min_person_count_) {
+        return 0.0;
+    }
+    return person_count / (double) count;
+}
 
 }
 
