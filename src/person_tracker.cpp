@@ -67,7 +67,7 @@ struct DynamicObject
     DynamicObject(PersonTracker* tracker, int id, int velocity_interval, const tf::Pose& pose, const tf::Vector3& dim)
         : tracker(tracker), id(id), first_pose(pose), pose(pose), dim(dim), velocity_interval_(velocity_interval), count(0), person_count(0), dynamic_(false), person_(false)
     {
-        double res = 0.05;
+//        double res = 0.05;
         //pts.setLeafSize(res, res, res);
         vel = tf::Vector3(0,0,0);
     }
