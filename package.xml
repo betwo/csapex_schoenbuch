@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>pillar_localization</name>
+  <name>csapex_schoenbuch</name>
   <version>0.0.0</version>
-  <description>The pillar_localization package</description>
+  <description>This package contains cs::APEX plugins for the Schönbuch project.</description>
 
   <maintainer email="sebastian.buck@uni-tuebingen.de">buck</maintainer>
 
