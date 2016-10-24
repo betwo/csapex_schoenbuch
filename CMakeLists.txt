@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(pillar_localization)
+project(csapex_schoenbuch)
 
 # Enforce that we use C++11
 if (CMAKE_VERSION VERSION_LESS "3.1")
