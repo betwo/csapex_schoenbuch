@@ -24,6 +24,7 @@ endif ()
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   tf
+  person_msgs
   csapex csapex_point_cloud csapex_transform csapex_core_plugins csapex_ros
 )
 find_package(PCL 1.7 REQUIRED COMPONENTS common filters segmentation)
@@ -81,6 +82,12 @@ target_link_libraries(schoenbuch_core
 
 
 add_library(schoenbuch_node
+    src/conversion/person_to_pose.cpp
+    src/conversion/person_to_transform.cpp
+
+    src/state/generate_exploration_map.cpp
+    src/state/explore_map.cpp
+
     src/pillar_localization.cpp
     src/object_detector.cpp
     src/person_detector.cpp
@@ -97,6 +104,7 @@ add_library(schoenbuch_node
     src/local_scrolling_map.cpp
     src/local_hazard_field.cpp
 )
+add_dependencies(schoenbuch_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(schoenbuch_node schoenbuch
     ${catkin_LIBRARIES}
     ${csapex_LIBRARIES}
