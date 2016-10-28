@@ -81,6 +81,9 @@ target_link_libraries(schoenbuch_core
 
 
 add_library(schoenbuch_node
+    src/elevator_detector.cpp
+    src/velodyne_segmentation_bogoslavskyi16.cpp
+    src/imu_to_transform.cpp
     src/pillar_localization.cpp
     src/object_detector.cpp
     src/person_detector.cpp

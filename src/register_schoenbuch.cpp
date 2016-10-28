@@ -8,6 +8,7 @@
 /// SYSTEM
 #include <csapex/utility/register_apex_plugin.h>
 #include <person_msgs/Person.h>
+#include <sensor_msgs/Imu.h>
 
 namespace csapex {
 
@@ -24,6 +25,7 @@ public:
         MessageSerializer::registerDirectMessage<connection_types::GenericPointerMessage, person_msgs::Person>();
 
         connection_types::MessageConversionHook<connection_types::GenericPointerMessage, person_msgs::Person>::registerConversion();
+        connection_types::MessageConversionHook<connection_types::GenericPointerMessage, sensor_msgs::Imu>::registerConversion();
     }
 
     void shutdown()

@@ -74,7 +74,10 @@ public:
         apex_assert_hard(cloud.isOrganized());
 
         LockedTFListener l = TFListener::getLocked();
-        tf::TransformListener& tfl_ = *l.l->tfl;
+        apex_assert(l.l);
+        auto listener = l.l->tfl;
+        apex_assert(listener);
+        tf::TransformListener& tfl_ = *listener;
 
         ros::Time start_time, end_time;
         end_time.fromNSec(input->header.stamp * 1e3);

@@ -6,6 +6,15 @@
 
 
 <library path="libschoenbuch_node">
+<class type="csapex::ElevatorDetector" base_class_type="csapex::Node">
+  <description>Uses simple heuristics to detect, whether the robot is in an elevator</description>
+</class>
+<class type="csapex::VelodyneSegmentationBogoslavskyi16" base_class_type="csapex::Node">
+  <description>Segments a VLP-16 Scan using the method proposed by Igor Bogoslavskyi at IROS 2016</description>
+</class>
+<class type="csapex::ImuToTransform" base_class_type="csapex::Node">
+  <description>Converts an IMU measurement to a TransformMessage</description>
+</class>
 <class type="csapex::ObjectDetector" base_class_type="csapex::Node">
   <description>Outdoor object detection for the Schönbuch Project.</description>
   <tags>Schönbuch, schoenbuch</tags>
