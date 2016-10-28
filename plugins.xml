@@ -6,6 +6,7 @@
 
 
 <library path="libschoenbuch_node">
+<<<<<<< HEAD
 <class type="csapex::ElevatorDetector" base_class_type="csapex::Node">
   <description>Uses simple heuristics to detect, whether the robot is in an elevator</description>
 </class>
@@ -14,6 +15,19 @@
 </class>
 <class type="csapex::ImuToTransform" base_class_type="csapex::Node">
   <description>Converts an IMU measurement to a TransformMessage</description>
+=======
+<class type="csapex::PersonToPose" base_class_type="csapex::Node">
+  <description>Converts a person_msgs::Person to a geometry_msgs::Pose</description>
+</class>
+<class type="csapex::PersonToTransform" base_class_type="csapex::Node">
+  <description>Converts a person_msgs::Person to a TransformMessage representing the pose</description>
+</class>
+<class type="csapex::GenerateExplorationMap" base_class_type="csapex::Node">
+  <description>Generates a map for autonomous exploration</description>
+</class>
+<class type="csapex::ExploreMap" base_class_type="csapex::Node">
+  <description>Searches for a new exploration target</description>
+>>>>>>> ce05e8de1f8d9a3efc2c6440022ad0faa4d67acd
 </class>
 <class type="csapex::ObjectDetector" base_class_type="csapex::Node">
   <description>Outdoor object detection for the Schönbuch Project.</description>

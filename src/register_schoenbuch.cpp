@@ -9,6 +9,7 @@
 #include <csapex/utility/register_apex_plugin.h>
 #include <person_msgs/Person.h>
 #include <sensor_msgs/Imu.h>
+#include <nav_msgs/OccupancyGrid.h>
 
 namespace csapex {
 
@@ -26,6 +27,7 @@ public:
 
         connection_types::MessageConversionHook<connection_types::GenericPointerMessage, person_msgs::Person>::registerConversion();
         connection_types::MessageConversionHook<connection_types::GenericPointerMessage, sensor_msgs::Imu>::registerConversion();
+        connection_types::MessageConversionHook<connection_types::GenericPointerMessage, nav_msgs::OccupancyGrid>::registerConversion();
     }
 
     void shutdown()
