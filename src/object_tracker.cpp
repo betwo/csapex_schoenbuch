@@ -300,11 +300,10 @@ public:
             ros::Time t = p0.header.stamp;
 
             LockedTFListener l = TFListener::getLocked();
-            if(!l.l) {
-                node_modifier_->setError("cannot get transform listener");
-                return;
-            }
-            tf::TransformListener& tfl_ = *l.l->tfl;
+            apex_assert(l.l);
+            auto listener = l.l->tfl;
+            apex_assert(listener);
+            tf::TransformListener& tfl_ = *listener;
 
             if(tfl_.waitForTransform(tracking_frame_, frame_id, t, ros::Duration(0.05))) {
                 tf::StampedTransform trafo;

@@ -315,12 +315,12 @@ public:
         tf::Transform pose;
         tf::poseMsgToTF(person.pose, pose);
 
+
         LockedTFListener l = TFListener::getLocked();
-        if(!l.l) {
-            node_modifier_->setError("cannot get transform listener");
-            return;
-        }
-        tf::TransformListener& tfl_ = *l.l->tfl;
+        apex_assert(l.l);
+        auto listener = l.l->tfl;
+        apex_assert(listener);
+        tf::TransformListener& tfl_ = *listener;
 
         if(tfl_.waitForTransform(tracking_frame_, person.header.frame_id, tmp_time_, ros::Duration(0.1))) {
             tf::StampedTransform trafo;
@@ -382,11 +382,11 @@ public:
             tmp_frame_id_ = cloud->header.frame_id;
 
             LockedTFListener l = TFListener::getLocked();
-            if(!l.l) {
-                node_modifier_->setError("cannot get transform listener");
-                return;
-            }
-            tf::TransformListener& tfl_ = *l.l->tfl;
+            apex_assert(l.l);
+            auto listener = l.l->tfl;
+            apex_assert(listener);
+            tf::TransformListener& tfl_ = *listener;
+
             if(!tfl_.waitForTransform(tracking_frame_, tmp_frame_id_, tmp_time_, ros::Duration(0.05))) {
                 return;
             }
