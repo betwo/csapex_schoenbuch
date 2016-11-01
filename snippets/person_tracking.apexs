@@ -1,0 +1,630 @@
+name: Person Tracking
+description: Foo Bar
+tags:
+  - Schönbuch
+  - foo
+  - bar
+  - baz
+  - x
+  - y
+  - z
+yaml:
+  nodes:
+    - pos:
+        - 150
+        - 353
+      z: 4478
+      label: Person Tracking
+      flipped: false
+      muted: false
+      exec_mode: 1
+      uuid: csapex::Graph_4
+      minimized: false
+      logger_level: 1
+      enabled: true
+      state:
+        params:
+          event count:
+            int: 0
+            name: event count
+            type: value
+          iterated_containers:
+            name: iterated_containers
+            type: bitset
+            int: 0
+          input count:
+            name: input count
+            int: 2
+            type: value
+          output names:
+            name: output names
+            type: string_list
+            list:
+              []
+          input names:
+            list:
+              - clusters
+              - optional people
+              - Something
+            name: input names
+            type: string_list
+          output count:
+            int: 0
+            name: output count
+            type: value
+          slot count:
+            name: slot count
+            int: 2
+            type: value
+          slot names:
+            name: slot names
+            type: string_list
+            list:
+              - reset
+              - persons
+              - people
+          event names:
+            type: string_list
+            name: event names
+            list:
+              []
+          iterate_containers:
+            bool: false
+            name: iterate_containers
+            type: value
+        persistent_params:
+          []
+      color:
+        - 255
+        - 0
+        - 0
+      type: csapex::Graph
+      subgraph:
+        nodes:
+          - label: csapex::ExportRos_13
+            type: csapex::ExportRos
+            logger_level: 1
+            uuid: csapex::ExportRos_0
+            color:
+              - -1
+              - -1
+              - -1
+            pos:
+              - 719
+              - 765
+            enabled: true
+            muted: false
+            flipped: false
+            minimized: false
+            z: 4122
+            state:
+              persistent_params:
+                []
+              params:
+                topic:
+                  string: tracked
+                  type: value
+                  name: topic
+                queue:
+                  max: 32
+                  min: 1
+                  step: 1
+                  type: range
+                  name: queue
+                  int: 1
+            exec_mode: 1
+          - type: csapex::PersonTracker
+            uuid: csapex::PersonTracker_0
+            logger_level: 2
+            enabled: true
+            flipped: false
+            exec_mode: 1
+            color:
+              - 255
+              - 0
+              - 0
+            z: 4459
+            label: csapex::PersonTracker_0
+            pos:
+              - -109
+              - 540
+            minimized: false
+            muted: false
+            state:
+              persistent_params:
+                []
+              params:
+                max_dx:
+                  type: range
+                  name: max_dx
+                  double: 0.422
+                  min: 0
+                  max: 1
+                  step: 0.001
+                max_distance:
+                  step: 0.01
+                  type: range
+                  name: max_distance
+                  double: 1
+                  min: 0
+                  max: 5
+                max_dz:
+                  type: range
+                  name: max_dz
+                  double: 1.149
+                  min: 0
+                  max: 2
+                  step: 0.001
+                look_ahead_duration:
+                  type: range
+                  name: look_ahead_duration
+                  double: 0.41
+                  min: 0
+                  max: 5
+                  step: 0.01
+                reset:
+                  type: trigger
+                  name: reset
+                tracking_start_x_range:
+                  type: interval
+                  name: tracking_start_x_range
+                  double:
+                    - 0
+                    - 2
+                  min: -4
+                  max: 4
+                  step: 0.01
+                lifetime:
+                  type: range
+                  name: lifetime
+                  int: 20
+                  min: 1
+                  step: 1
+                  max: 100
+                min_count:
+                  type: range
+                  name: min_count
+                  int: 10
+                  min: 1
+                  max: 64
+                  step: 1
+                max_dy:
+                  max: 1
+                  step: 0.001
+                  type: range
+                  name: max_dy
+                  double: 0.411
+                  min: 0
+                min_person_count:
+                  type: range
+                  name: min_person_count
+                  int: 3
+                  min: 1
+                  step: 1
+                  max: 64
+                min_probability:
+                  type: range
+                  name: min_probability
+                  double: 0.1
+                  min: 0
+                  step: 0.001
+                  max: 1
+                tracking_start_y_range:
+                  type: interval
+                  name: tracking_start_y_range
+                  double:
+                    - -0.5
+                    - 0.5
+                  min: -4
+                  max: 4
+                  step: 0.01
+                velocity_interval:
+                  type: range
+                  name: velocity_interval
+                  int: 15
+                  min: 1
+                  max: 100
+                  step: 1
+                z_range:
+                  type: interval
+                  name: z_range
+                  double:
+                    - -4
+                    - 4
+                  min: -4
+                  max: 4
+                  step: 0.01
+          - type: csapex::ExportRos
+            uuid: csapex::ExportRos_1
+            label: csapex::ExportRos_13
+            pos:
+              - 616
+              - 928
+            color:
+              - -1
+              - -1
+              - -1
+            z: 4378
+            minimized: false
+            muted: false
+            enabled: true
+            flipped: false
+            exec_mode: 1
+            logger_level: 1
+            state:
+              params:
+                queue:
+                  type: range
+                  name: queue
+                  int: 1
+                  min: 1
+                  max: 32
+                  step: 1
+                topic:
+                  type: value
+                  name: topic
+                  string: /obstacle_cloud
+              persistent_params:
+                []
+          - type: csapex::DynamicTransform
+            uuid: csapex::DynamicTransform_0
+            label: csapex::DynamicTransform_0
+            pos:
+              - -571
+              - 1126
+            color:
+              - -1
+              - -1
+              - -1
+            z: 4476
+            minimized: false
+            muted: false
+            enabled: true
+            flipped: false
+            exec_mode: 1
+            logger_level: 1
+            state:
+              params:
+                exact_time:
+                  type: value
+                  name: exact_time
+                  bool: false
+                freeze_transformation:
+                  type: value
+                  name: freeze_transformation
+                  bool: false
+                refresh:
+                  type: trigger
+                  name: refresh
+                reset tf:
+                  type: trigger
+                  name: reset tf
+                source:
+                  type: set
+                  name: source
+                  txt: /base_link
+                  string: /base_link
+                target:
+                  type: set
+                  name: target
+                  txt: /odom
+                  string: /odom
+                ~tf/dx:
+                  type: value
+                  name: ~tf/dx
+                  double: 0
+                ~tf/dy:
+                  type: value
+                  name: ~tf/dy
+                  double: 0
+                ~tf/dz:
+                  type: value
+                  name: ~tf/dz
+                  double: 0
+                ~tf/pitch:
+                  type: angle
+                  name: ~tf/pitch
+                  value: 0
+                  min: -3.141592653589793
+                  max: 3.141592653589793
+                ~tf/roll:
+                  type: angle
+                  name: ~tf/roll
+                  value: 0
+                  min: -3.141592653589793
+                  max: 3.141592653589793
+                ~tf/yaw:
+                  type: angle
+                  name: ~tf/yaw
+                  value: 0
+                  min: -3.141592653589793
+                  max: 3.141592653589793
+              persistent_params:
+                []
+          - type: csapex::ExportRos
+            uuid: csapex::ExportRos_2
+            label: csapex::ExportRos_13
+            pos:
+              - 722
+              - 512
+            color:
+              - -1
+              - -1
+              - -1
+            z: 4120
+            minimized: false
+            muted: false
+            enabled: true
+            flipped: false
+            exec_mode: 1
+            logger_level: 1
+            state:
+              params:
+                queue:
+                  type: range
+                  name: queue
+                  int: 1
+                  min: 1
+                  max: 32
+                  step: 1
+                topic:
+                  type: value
+                  name: topic
+                  string: tracked_marker
+              persistent_params:
+                []
+          - type: csapex::ExportRos
+            uuid: csapex::ExportRos_3
+            label: csapex::ExportRos_13
+            pos:
+              - 649
+              - 1120
+            color:
+              - -1
+              - -1
+              - -1
+            z: 4382
+            minimized: false
+            muted: false
+            enabled: true
+            flipped: false
+            exec_mode: 1
+            logger_level: 1
+            state:
+              params:
+                queue:
+                  type: range
+                  name: queue
+                  int: 1
+                  min: 1
+                  max: 32
+                  step: 1
+                topic:
+                  type: value
+                  name: topic
+                  string: /obstacle_map
+              persistent_params:
+                []
+          - z: 4475
+            color:
+              - -1
+              - -1
+              - -1
+            pos:
+              - 263
+              - 1204
+            label: csapex::PathPredictor_0
+            uuid: csapex::PathPredictor_0
+            type: csapex::PathPredictor
+            minimized: false
+            muted: false
+            enabled: true
+            flipped: false
+            exec_mode: 1
+            logger_level: 1
+            state:
+              params:
+                prior/sigma/theta:
+                  type: range
+                  name: prior/sigma/theta
+                  double: 10
+                  min: 0
+                  max: 10
+                  step: 0.01
+                prior/sigma/x:
+                  type: range
+                  name: prior/sigma/x
+                  double: 3.5
+                  min: 0
+                  max: 10
+                  step: 0.01
+                prior/sigma/y:
+                  type: range
+                  name: prior/sigma/y
+                  double: 5.33
+                  min: 0
+                  max: 10
+                  step: 0.01
+                reset:
+                  type: trigger
+                  name: reset
+                threshold/camera:
+                  type: range
+                  name: threshold/camera
+                  double: 0
+                  min: 0
+                  max: 1
+                  step: 0.01
+                threshold/laser:
+                  type: range
+                  name: threshold/laser
+                  double: 0
+                  min: 0
+                  max: 1
+                  step: 0.01
+              persistent_params:
+                []
+          - uuid: csapex::ExportRos_4
+            color:
+              - -1
+              - -1
+              - -1
+            label: csapex::ExportRos_13
+            pos:
+              - 727
+              - 1324
+            z: 4397
+            type: csapex::ExportRos
+            minimized: false
+            muted: false
+            enabled: true
+            flipped: false
+            exec_mode: 1
+            logger_level: 1
+            state:
+              params:
+                queue:
+                  type: range
+                  name: queue
+                  int: 1
+                  min: 1
+                  max: 32
+                  step: 1
+                topic:
+                  type: value
+                  name: topic
+                  string: prediction
+              persistent_params:
+                []
+          - label: csapex::ExportRos_13
+            uuid: csapex::ExportRos_5
+            pos:
+              - 725
+              - 1532
+            type: csapex::ExportRos
+            color:
+              - -1
+              - -1
+              - -1
+            z: 4404
+            minimized: false
+            muted: false
+            enabled: true
+            flipped: false
+            exec_mode: 1
+            logger_level: 1
+            state:
+              params:
+                queue:
+                  type: range
+                  name: queue
+                  int: 1
+                  min: 1
+                  max: 32
+                  step: 1
+                topic:
+                  type: value
+                  name: topic
+                  string: estimation
+              persistent_params:
+                []
+          - uuid: csapex::ExportRos_6
+            label: csapex::ExportRos_13
+            pos:
+              - 727
+              - 1743
+            type: csapex::ExportRos
+            color:
+              - -1
+              - -1
+              - -1
+            z: 4402
+            minimized: false
+            muted: false
+            enabled: true
+            flipped: false
+            exec_mode: 1
+            logger_level: 1
+            state:
+              params:
+                queue:
+                  type: range
+                  name: queue
+                  int: 1
+                  min: 1
+                  max: 32
+                  step: 1
+                topic:
+                  type: value
+                  name: topic
+                  string: particles
+              persistent_params:
+                []
+        connections:
+          - uuid: csapex::PersonTracker_0:|:out_3
+            targets:
+              - csapex::ExportRos_3:|:in_0
+            types:
+              - default
+          - uuid: relayevent_1
+            targets:
+              - csapex::PersonTracker_0:|:slot_1
+              - csapex::PathPredictor_0:|:slot_1
+            types:
+              - default
+              - default
+          - uuid: csapex::PathPredictor_0:|:out_0
+            targets:
+              - csapex::ExportRos_5:|:in_0
+            types:
+              - default
+          - uuid: csapex::PersonTracker_0:|:out_0
+            targets:
+              - csapex::ExportRos_2:|:in_0
+            types:
+              - default
+          - uuid: csapex::DynamicTransform_0:|:out_0
+            targets:
+              - csapex::PersonTracker_0:|:in_0
+              - csapex::PathPredictor_0:|:in_0
+            types:
+              - default
+              - default
+          - uuid: relayevent_0
+            targets:
+              - csapex::PersonTracker_0:|:slot_0
+              - csapex::PathPredictor_0:|:slot_0
+            types:
+              - default
+              - default
+          - uuid: csapex::PersonTracker_0:|:out_1
+            targets:
+              - csapex::ExportRos_0:|:in_0
+              - csapex::PathPredictor_0:|:slot_2
+            types:
+              - default
+              - default
+          - uuid: csapex::PathPredictor_0:|:out_1
+            targets:
+              - csapex::ExportRos_4:|:in_0
+            types:
+              - default
+          - uuid: csapex::PersonTracker_0:|:out_2
+            targets:
+              - csapex::ExportRos_1:|:in_0
+              - csapex::PathPredictor_0:|:in_1
+            types:
+              - default
+              - default
+          - uuid: csapex::PathPredictor_0:|:out_2
+            targets:
+              - csapex::ExportRos_6:|:in_0
+            types:
+              - default
+          - uuid: relayout_0
+            targets:
+              - csapex::PersonTracker_0:|:in_1
+            types:
+              - default
+  connections:
+    []
