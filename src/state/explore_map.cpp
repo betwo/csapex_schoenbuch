@@ -166,7 +166,7 @@ private:
         int8_t* dataP = &ss->data[0];
         for(int row = 0; row < h; ++row) {
             for(int col = 0; col < w; ++col) {
-                const uchar& val = search_space.at<uchar>(row, col);
+                // const uchar& val = search_space.at<uchar>(row, col);
 
                 float dist_to_obstacles = distance_to_obstacle.at<float>(row, col) * res;
                 float dist_to_unknown = distance_to_unknown.at<float>(row, col) * res;
