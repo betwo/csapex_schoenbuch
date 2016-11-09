@@ -1,0 +1,374 @@
+name: Follow Person
+description: Follows a Person, if it is a given distance away.
+tags:
+  - ""
+  - ""
+  - Schönbuch
+  - Navigation
+yaml:
+  connections:
+    []
+  nodes:
+    - uuid: csapex::Graph_3
+      logger_level: 1
+      state:
+        persistent_params:
+          []
+        params:
+          input count:
+            name: input count
+            int: 2
+            type: value
+          event names:
+            type: string_list
+            name: event names
+            list:
+              - error
+              - too close
+              - too close
+          event count:
+            int: 2
+            name: event count
+            type: value
+          input names:
+            list:
+              - Goal
+              - Relative Goal
+              - Transform
+            type: string_list
+            name: input names
+          slot names:
+            list:
+              []
+            type: string_list
+            name: slot names
+          slot count:
+            type: value
+            int: 0
+            name: slot count
+          output names:
+            type: string_list
+            name: output names
+            list:
+              - Path
+              - Path
+          output count:
+            int: 1
+            type: value
+            name: output count
+          iterated_containers:
+            int: 0
+            name: iterated_containers
+            type: bitset
+          iterate_containers:
+            name: iterate_containers
+            bool: false
+            type: value
+      muted: false
+      subgraph:
+        connections:
+          - types:
+              - active
+              - default
+            uuid: csapex::Switch_0:|:out_1
+            targets:
+              - relayslot_1
+              - csapex::FollowPath_0:|:slot_0
+          - uuid: csapex::ExtractMeasures_0:|:out_norm
+            targets:
+              - csapex::Threshold_0:|:in_0
+            types:
+              - default
+          - uuid: csapex::Delay_0:|:event_0
+            targets:
+              - csapex::FollowPath_0:|:slot_1
+            types:
+              - default
+          - uuid: csapex::Switch_0:|:out_0
+            targets:
+              - csapex::PlanPath_0:|:in_0
+            types:
+              - active
+          - uuid: csapex::Threshold_0:|:out_0
+            targets:
+              - csapex::Switch_0:|:in_predicate
+            types:
+              - default
+          - types:
+              - default
+              - default
+              - active
+            uuid: csapex::PlanPath_0:|:out_0
+            targets:
+              - csapex::FollowPath_0:|:in_0
+              - csapex::Delay_0:|:slot_0
+              - relayin_0
+          - uuid: csapex::PlanPath_0:|:event_1
+            targets:
+              - relayslot_0
+            types:
+              - active
+          - uuid: relayout_0
+            targets:
+              - csapex::Switch_0:|:in_0
+            types:
+              - active
+          - uuid: relayout_1
+            targets:
+              - csapex::ExtractMeasures_0:|:in_0
+            types:
+              - default
+        nodes:
+          - flipped: false
+            enabled: true
+            logger_level: 1
+            exec_mode: 1
+            uuid: csapex::PlanPath_0
+            label: csapex::PlanPath_0
+            pos:
+              - 428
+              - 181
+            type: csapex::PlanPath
+            z: 4658
+            minimized: false
+            color:
+              - -1
+              - -1
+              - -1
+            state:
+              params:
+                algorithm:
+                  string: summit_forward
+                  type: value
+                  name: algorithm
+                abort:
+                  name: abort
+                  type: trigger
+                max_search_duration:
+                  min: 0
+                  double: 1
+                  max: 30
+                  step: 0.01
+                  name: max_search_duration
+                  type: range
+                grow_obstacles:
+                  name: grow_obstacles
+                  bool: true
+                  type: value
+                planner_topic:
+                  type: value
+                  string: plan_path
+                  name: planner_topic
+                grow_obstacles/radius:
+                  double: 0.51
+                  step: 0.01
+                  max: 10
+                  type: range
+                  name: grow_obstacles/radius
+                  min: 0
+              persistent_params:
+                []
+            muted: false
+          - uuid: csapex::FollowPath_0
+            pos:
+              - 982
+              - 284
+            color:
+              - -1
+              - -1
+              - -1
+            muted: false
+            type: csapex::FollowPath
+            minimized: false
+            logger_level: 1
+            flipped: false
+            label: csapex::FollowPath_0
+            state:
+              params:
+                target_velocity:
+                  min: 0
+                  max: 5
+                  name: target_velocity
+                  step: 0.01
+                  double: 0.68
+                  type: range
+                abort:
+                  type: trigger
+                  name: abort
+                init_mode:
+                  int: 1
+                  type: set
+                  txt: CONTINUE
+                  name: init_mode
+                detach:
+                  name: detach
+                  type: trigger
+                follower_topic:
+                  string: follow_path
+                  name: follower_topic
+                  type: value
+              persistent_params:
+                []
+            enabled: true
+            exec_mode: 1
+            z: 4685
+          - color:
+              - -1
+              - -1
+              - -1
+            z: 4681
+            logger_level: 1
+            muted: false
+            uuid: csapex::Delay_0
+            minimized: false
+            pos:
+              - 885
+              - 43
+            label: csapex::Delay_1
+            enabled: true
+            exec_mode: 1
+            state:
+              persistent_params:
+                []
+              params:
+                delay:
+                  min: 0
+                  name: delay
+                  double: 0.8
+                  step: 0.01
+                  max: 10
+                  type: range
+                delay progress:
+                  type: progress
+                  name: delay progress
+                blocking:
+                  bool: false
+                  type: value
+                  name: blocking
+            flipped: false
+            type: csapex::Delay
+          - uuid: csapex::ExtractMeasures_0
+            state:
+              persistent_params:
+                []
+              params:
+                dz:
+                  type: value
+                  double: 0.1504941019658123
+                  name: dz
+                pitch:
+                  type: angle
+                  name: pitch
+                  value: 1.569725926496862
+                  min: -3.141592653589793
+                  max: 3.141592653589793
+                dy:
+                  type: value
+                  double: -12.3696400727992
+                  name: dy
+                yaw:
+                  value: 0.153040211006154
+                  name: yaw
+                  min: -3.141592653589793
+                  max: 3.141592653589793
+                  type: angle
+                yaw/cap:
+                  type: value
+                  name: yaw/cap
+                  bool: true
+                dx:
+                  name: dx
+                  double: -5.882753929911091
+                  type: value
+                norm:
+                  double: 13.69808153739824
+                  type: value
+                  interactive: true
+                  name: norm
+                roll:
+                  value: 1.556084625638213
+                  max: 3.141592653589793
+                  min: -3.141592653589793
+                  name: roll
+                  type: angle
+            flipped: false
+            label: csapex::ExtractMeasures_0
+            color:
+              - -1
+              - -1
+              - -1
+            pos:
+              - -231
+              - 400
+            z: 4642
+            muted: false
+            logger_level: 1
+            exec_mode: 1
+            minimized: false
+            enabled: true
+            type: csapex::ExtractMeasures
+          - type: csapex::Switch
+            uuid: csapex::Switch_0
+            minimized: false
+            z: 4684
+            muted: false
+            enabled: true
+            flipped: false
+            exec_mode: 1
+            logger_level: 1
+            label: csapex::Switch_0
+            pos:
+              - -86
+              - -31
+            color:
+              - -1
+              - -1
+              - -1
+            state:
+              params:
+                predicate:
+                  type: value
+                  name: predicate
+                  interactive: true
+                  bool: true
+              persistent_params:
+                []
+          - muted: false
+            enabled: true
+            flipped: false
+            exec_mode: 1
+            logger_level: 1
+            label: csapex::Threshold_0
+            pos:
+              - -176
+              - -192
+            color:
+              - -1
+              - -1
+              - -1
+            z: 4686
+            minimized: false
+            type: csapex::Threshold
+            uuid: csapex::Threshold_0
+            state:
+              params:
+                threshold:
+                  type: value
+                  name: threshold
+                  double: 3.5
+              persistent_params:
+                []
+      exec_mode: 1
+      enabled: true
+      flipped: false
+      type: csapex::Graph
+      z: 4690
+      minimized: false
+      label: Follow Forward
+      pos:
+        - 17
+        - -472
+      color:
+        - -1
+        - -1
+        - -1
