@@ -62,6 +62,10 @@ public:
         params.addParameter(param::ParameterFactory::declareAngle("min obstacle angle",
                                                                    M_PI / 3),
                             min_obstacle_angle_);
+
+        params.addParameter(param::ParameterFactory::declareRange("skip", 1, 32, 1, 1), skip_);
+
+        params.addParameter(param::ParameterFactory::declareBool("keep_organized", false), keep_organized_);
     }
 
     void process()
@@ -76,6 +80,17 @@ public:
 
             convertToMesh(cloud, *res);
             //segment(cloud, *res);
+
+            if(keep_organized_) {
+                res->width = res->points.size() / 16;
+                res->height = 16;
+                apex_assert(res->width * res->height == res->points.size());
+                res->is_dense = true;
+            } else {
+                res->width = res->points.size();
+                res->height = 1;
+                res->is_dense = false;
+            }
 
             PointCloudMessage::Ptr output_msg(new PointCloudMessage(cloud.header.frame_id, cloud.header.stamp));
             output_msg->value = res;
@@ -106,9 +121,11 @@ public:
         objects = floor;
         objects.ns = "objects";
 
-        auto add_triangle = [this, &floor, &objects, &out](const pcl::PointXYZI& ca, const pcl::PointXYZI& cb, const pcl::PointXYZI& cc) {
+        pcl::PointXYZI nan;
+        nan.x = nan.y = nan.z = nan.intensity = std::numeric_limits<float>::quiet_NaN();
 
-
+        auto add_triangle = [this, &floor, &objects, &out, nan](const pcl::PointXYZI& ca, const pcl::PointXYZI& cb, const pcl::PointXYZI& cc) -> boost::optional<pcl::PointXYZI>
+        {
             tf::Vector3 a(ca.x, ca.y, ca.z);
             tf::Vector3 b(cb.x, cb.y, cb.z);
             tf::Vector3 c(cc.x, cc.y, cc.z);
@@ -132,6 +149,8 @@ public:
 
 
             double mz = std::min(pa.z, std::min(pb.z, pc.z));
+
+            bool inserted = false;
 
             if(tilt < max_floor_angle_) {
 
@@ -182,25 +201,47 @@ public:
                         o = cc;
                     }
 
-                    out.points.push_back(o);
+//                    out.points.push_back(o);
+                    return o;
                // }
             }
+
+//            if(keep_organized_ && !inserted) {
+//                out.points.push_back(nan);
+//            }
+
+            return boost::optional<pcl::PointXYZI>();
         };
 
-        int skip = 4;
-
-        for(int col = 0, cols = in.width; col < cols-skip; col += skip) {
-            for(int row = 0, rows = in.height; row < rows-1; ++row) {
-                const pcl::PointXYZI& bl = in.at(col, row);
-                const pcl::PointXYZI& br = in.at(col+skip, row);
-                const pcl::PointXYZI& tl = in.at(col, row+1);
-                const pcl::PointXYZI& tr = in.at(col+skip, row+1);
-
-                if(pcl::isFinite(bl) && pcl::isFinite(tl) && pcl::isFinite(tr)) {
-                    add_triangle(bl, tl, tr);
+        for(int row = 0, rows = in.height; row < rows; ++row) {
+            for(int col = 0, cols = in.width; col <= cols-skip_; col += skip_) {
+                if(row == rows - 1) {
+                    if(keep_organized_) {
+                        out.points.push_back(nan);
+                    }
+                    continue;
                 }
-                if(pcl::isFinite(bl) && pcl::isFinite(tr) && pcl::isFinite(br)) {
-                    add_triangle(bl, tr, br);
+
+                const pcl::PointXYZI& bl = in.at(col, row);
+                const pcl::PointXYZI& br = in.at((col+skip_)%cols, row);
+                const pcl::PointXYZI& tl = in.at(col, row+1);
+                const pcl::PointXYZI& tr = in.at((col+skip_)%cols, row+1);
+
+                boost::optional<pcl::PointXYZI> inserted;
+                if(pcl::isFinite(bl) && pcl::isFinite(tl) && pcl::isFinite(tr)) {
+                    inserted = add_triangle(bl, tl, tr);
+                }
+                if(!inserted) {
+                    if(pcl::isFinite(bl) && pcl::isFinite(tr) && pcl::isFinite(br)) {
+                        inserted = add_triangle(bl, tr, br);
+                    }
+                }
+
+                if(inserted) {
+                    //out.points.push_back(inserted.get());
+                    out.points.push_back(bl);
+                } else if(keep_organized_) {
+                    out.points.push_back(nan);
                 }
             }
         }
@@ -425,6 +466,10 @@ private:
     double max_floor_height_;
     double max_floor_angle_;
     double min_obstacle_angle_;
+
+    int skip_;
+
+    bool keep_organized_;
 };
 
 

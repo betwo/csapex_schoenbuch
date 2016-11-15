@@ -58,6 +58,8 @@ public:
                             alpha_);
         params.addParameter(param::ParameterFactory::declareAngle("theta", 0.0),
                             theta_);
+
+        params.addParameter(param::ParameterFactory::declareValue("min_cluster_size", 3), min_cluster_size_);
     }
 
     void process()
@@ -98,10 +100,13 @@ public:
             {}
         };
 
+
         int current_label = 0;
 
         int rows = in.height;
         int cols = in.width;
+
+        apex_assert(rows > 1 && cols > 1);
 
         static const int nx[] = {-1, 0, 1, 0};
         static const int ny[] = {0, -1, 0, 1};
@@ -110,8 +115,10 @@ public:
             for(int c = 0; c < cols; ++c) {
                 pcl::PointXYZL& label = labels.at(c, r);
                 if(label.label == 0) {
-                    ++current_label;
-                    res->emplace_back();
+                    if(res->empty() || !res->back().indices.empty()) {
+                        ++current_label;
+                        res->emplace_back();
+                    }
                     pcl::PointIndices& cluster = res->back();
 
                     std::deque<Pt> Q;
@@ -155,9 +162,15 @@ public:
                             }
                         }
                     }
+
+                    if(cluster.indices.size() < min_cluster_size_) {
+                        cluster.indices.clear();
+                    }
                 }
             }
         }
+
+        adebug << "found " << (current_label) << " clusters" << std::endl;
 
         return res;
     }
@@ -168,6 +181,8 @@ private:
 
     double alpha_;
     double theta_;
+
+    int min_cluster_size_;
 };
 
 

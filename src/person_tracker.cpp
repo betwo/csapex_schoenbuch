@@ -108,13 +108,19 @@ public:
         out_people_ = modifier.addOutput<GenericVectorMessage, std::shared_ptr<person_msgs::Person>>("people");
         out_obstacles_ = modifier.addOutput<PointCloudMessage>("obstacles");
         out_map_ = modifier.addOutput<PointCloudMessage>("obstacle_map");
+
+        out_target_ = modifier.addOutput<TransformMessage>("target");
+
+        event_start_tracking_ = modifier.addEvent("start tracking");
+        event_stop_tracking_ = modifier.addEvent("stop tracking");
     }
 
     void setupParameters(csapex::Parameterizable& params) override
     {
         params.addParameter(param::ParameterFactory::declareInterval("z_range", -4.0, 4.0, 0.0, 2.0, 0.01), z_range_);
         params.addParameter(param::ParameterFactory::declareRange("max_distance", 0.0, 5.0, 1.5, 0.01), max_distance_);
-        params.addParameter(param::ParameterFactory::declareRange("lifetime", 1, 100, 10, 1), lifetime_);
+        params.addParameter(param::ParameterFactory::declareRange("lifetime/unknown", 1, 100, 10, 1), lifetime_unknown_);
+        params.addParameter(param::ParameterFactory::declareRange("lifetime/person", 1, 1000, 150, 1), lifetime_person_);
         params.addParameter(param::ParameterFactory::declareRange("look_ahead_duration", 0.0, 5.0, 1.5, 0.01), look_ahead_duration_);
 
         params.addParameter(param::ParameterFactory::declareRange("min_probability", 0.0, 1.0, 0.2, 0.001), min_probability_);
@@ -141,6 +147,10 @@ public:
                 o.velocity_interval_ = velocity_interval_;
             }
         });
+        params.addParameter(param::ParameterFactory::declareRange("velocity_decay", 0.0, 1.0, 1.0, 0.001), velocity_decay_);
+
+        params.addParameter(param::ParameterFactory::declareInterval("tracking/start/x_range", -10.0, 10.0, 0.0, 4.0, 0.01), start_x_range_);
+        params.addParameter(param::ParameterFactory::declareInterval("tracking/start/y_range", -10.0, 10.0, -1.5, 1.5, 0.01), start_y_range_);
 
         params.addParameter(param::ParameterFactory::declareTrigger("reset"), [this](param::Parameter*){
             objects_.clear();
@@ -205,12 +215,15 @@ public:
         obstacles_map->header.frame_id = tracking_frame_;
         obstacles_map->header.stamp = tmp_time_.toNSec() * 1e-3;
 
+        TransformMessage::Ptr target(new TransformMessage(tracking_frame_, "target"));
+
         for(auto it = objects_.begin(); it != objects_.end(); ) {
             DynamicObject& obj = *it;
             --obj.life;
             if(obj.life <= 0) {
                 if(tracking_id == obj.id) {
                     tracking_id = -1;
+                    event_stop_tracking_->trigger();
                 }
                 it = objects_.erase(it);
                 continue;
@@ -218,9 +231,17 @@ public:
                 ++it;
             }
 
+            if(tracking_id == obj.id) {
+                target->value = obj.pose;
+
+                double yaw = std::atan2(obj.vel.y(), obj.vel.x());
+                target->value.setRotation(tf::createQuaternionFromYaw(yaw));
+                target->value.setOrigin(target->value.getOrigin() + obj.vel * look_ahead_duration_);
+            }
+
             obj.pose.setOrigin(obj.pose.getOrigin() + obj.vel * dt);
 
-            obj.vel *= 0.5;
+            obj.vel *= velocity_decay_;
 
             marker.action = visualization_msgs::Marker::ADD;
 
@@ -288,6 +309,42 @@ public:
 
         msg::publish<GenericVectorMessage, std::shared_ptr<person_msgs::Person const>>(out_people_, person_vector);
 
+        if(tracking_id != -1) {
+            ainfo << "tracking target " << tracking_id << std::endl;
+            msg::publish(out_target_, target);
+
+        } else {
+            tf::Transform base_link_to_world = current_transform_.inverse();
+
+            ainfo << "searching for candidate: "<< std::endl;
+            std::vector<const DynamicObject*> candidates;
+            for(const DynamicObject& o : objects_) {
+                if(!isPerson(o)) {
+                    continue;
+                }
+
+                tf::Pose local_pose = base_link_to_world * o.pose;
+
+                double x = local_pose.getOrigin().x();
+                double y = local_pose.getOrigin().y();
+
+                ainfo << "-  " << x << " / " << y << std::endl;
+
+                if(x > start_x_range_.first && x < start_x_range_.second &&
+                        y > start_y_range_.first && y < start_y_range_.second) {
+                    candidates.push_back(&o);
+                }
+            }
+
+            if(candidates.size() == 1) {
+                tracking_id = candidates.front()->id;
+                event_start_tracking_->trigger();
+            } else if(!candidates.empty()) {
+                awarn << "too many candidates" << std::endl;
+            } else {
+                awarn << "no candidates" << std::endl;
+            }
+        }
 
         PointCloudMessage::Ptr obstacles_map_msg = std::make_shared<PointCloudMessage>(obstacles_map->header.frame_id, obstacles_map->header.stamp);
         obstacles_map_msg->value = obstacles_map;
@@ -537,7 +594,7 @@ public:
         }
 
         best_fit->update(measurement.header.stamp, pose);
-        best_fit->life = lifetime_;
+        best_fit->life = isPerson(*best_fit) ? lifetime_person_ : lifetime_unknown_;
     }
 
 private:
@@ -548,6 +605,10 @@ private:
     Output* out_people_;
     Output* out_obstacles_;
     Output* out_map_;
+    Output* out_target_;
+
+    Event* event_start_tracking_;
+    Event* event_stop_tracking_;
 
     ros::Time last_process_;
 
@@ -561,6 +622,7 @@ private:
     int tracking_id;
 
     int velocity_interval_;
+    double velocity_decay_;
     double look_ahead_duration_;
 
     double min_probability_;
@@ -573,7 +635,10 @@ private:
 
     double max_distance_;
     std::pair<double, double> z_range_;
-    int lifetime_;
+    std::pair<double, double> start_x_range_;
+    std::pair<double, double> start_y_range_;
+    int lifetime_unknown_;
+    int lifetime_person_;
 
     tf::StampedTransform tmp_trafo_;
 
