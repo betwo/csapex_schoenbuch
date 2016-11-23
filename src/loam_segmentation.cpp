@@ -129,7 +129,7 @@ public:
             //     std::cout << point << std::endl;
             //     std::cout << point.x << ", " << point.y << ", " << point.z << std::endl;
             //     std::cout << "angle: " << angle << " scanID: " << scanID << std::endl;
-            if (isnan(angle)) {
+            if (std::isnan(angle)) {
                 nNan++;
                 continue;
             }
