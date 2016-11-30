@@ -163,7 +163,7 @@ public:
                         }
                     }
 
-                    if(cluster.indices.size() < min_cluster_size_) {
+                    if((int)cluster.indices.size() < min_cluster_size_) {
                         cluster.indices.clear();
                     }
                 }
