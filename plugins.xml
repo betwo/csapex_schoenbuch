@@ -1,11 +1,11 @@
-<library path="libschoenbuch_core">
+<library path="libcsapex_schoenbuch_core">
 <class type="csapex::RegisterSchoenbuch" base_class_type="csapex::CorePlugin">
   <description></description>
 </class>
 </library>
 
 
-<library path="libschoenbuch_node">
+<library path="libcsapex_schoenbuch_node">
 <class type="csapex::ElevatorDetector" base_class_type="csapex::Node">
   <description>Uses simple heuristics to detect, whether the robot is in an elevator</description>
   <tags>Schönbuch, schoenbuch</tags>

@@ -110,6 +110,7 @@ public:
         out_map_ = modifier.addOutput<PointCloudMessage>("obstacle_map");
 
         out_target_ = modifier.addOutput<TransformMessage>("target");
+        out_target_predicted_= modifier.addOutput<TransformMessage>("target_predicted");
 
         event_start_tracking_ = modifier.addEvent("start tracking");
         event_stop_tracking_ = modifier.addEvent("stop tracking");
@@ -213,9 +214,10 @@ public:
         pcl::PointCloud<pcl::PointXYZ>::Ptr obstacles_map =
                 boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
         obstacles_map->header.frame_id = tracking_frame_;
-        obstacles_map->header.stamp = tmp_time_.toNSec() * 1e-3;
+        obstacles_map->header.stamp = obstacle_time_.toNSec() * 1e-3;
 
         TransformMessage::Ptr target(new TransformMessage(tracking_frame_, "target"));
+        TransformMessage::Ptr target_predicted(new TransformMessage(tracking_frame_, "target_predicted"));
 
         for(auto it = objects_.begin(); it != objects_.end(); ) {
             DynamicObject& obj = *it;
@@ -233,10 +235,18 @@ public:
 
             if(tracking_id == obj.id) {
                 target->value = obj.pose;
+                if(tf_msg->stamp_micro_seconds != 0) {
+                    target->stamp_micro_seconds = tf_msg->stamp_micro_seconds;
+
+                } else {
+                    target->stamp_micro_seconds = obstacle_time_.toNSec() * 1e-3;
+                }
 
                 double yaw = std::atan2(obj.vel.y(), obj.vel.x());
                 target->value.setRotation(tf::createQuaternionFromYaw(yaw));
-                target->value.setOrigin(target->value.getOrigin() + obj.vel * look_ahead_duration_);
+
+                target_predicted->value = target->value;
+                target_predicted->value.setOrigin(target->value.getOrigin() + obj.vel * look_ahead_duration_);
             }
 
             obj.pose.setOrigin(obj.pose.getOrigin() + obj.vel * dt);
@@ -312,6 +322,7 @@ public:
         if(tracking_id != -1) {
             ainfo << "tracking target " << tracking_id << std::endl;
             msg::publish(out_target_, target);
+            msg::publish(out_target_predicted_, target_predicted);
 
         } else {
             tf::Transform base_link_to_world = current_transform_.inverse();
@@ -351,7 +362,7 @@ public:
         msg::publish(out_map_, obstacles_map_msg);
 
         if(raw_obstacles_) {
-            PointCloudMessage::Ptr obstacles = std::make_shared<PointCloudMessage>(tmp_frame_id_, tmp_time_.toNSec() * 1e-3);
+            PointCloudMessage::Ptr obstacles = std::make_shared<PointCloudMessage>(obstacle_frame_id_, obstacle_time_.toNSec() * 1e-3);
             obstacles->value = raw_obstacles_;
             msg::publish(out_obstacles_, obstacles);
         }
@@ -379,9 +390,9 @@ public:
         apex_assert(listener);
         tf::TransformListener& tfl_ = *listener;
 
-        if(tfl_.waitForTransform(tracking_frame_, person.header.frame_id, tmp_time_, ros::Duration(0.1))) {
+        if(tfl_.waitForTransform(tracking_frame_, person.header.frame_id, obstacle_time_, ros::Duration(0.1))) {
             tf::StampedTransform trafo;
-            tfl_.lookupTransform(tracking_frame_, person.header.frame_id, tmp_time_, trafo);
+            tfl_.lookupTransform(tracking_frame_, person.header.frame_id, obstacle_time_, trafo);
 
             if(std::isnan(tf::getYaw(pose.getRotation()))) {
                 pose.setRotation(tf::createIdentityQuaternion());
@@ -423,7 +434,7 @@ public:
         }
 
         if(detections.size() > 0) {
-            tmp_frame_id_ = "";
+            obstacle_frame_id_ = "";
 
             for(const PointCloudMessage::ConstPtr& pcl_msg : detections) {
                 boost::apply_visitor(PointCloudMessage::Dispatch<PersonTracker>(this, pcl_msg), pcl_msg->value);
@@ -434,9 +445,9 @@ public:
     template<typename PointT>
     void inputCloud(typename pcl::PointCloud<PointT>::ConstPtr cloud)
     {
-        if(tmp_frame_id_.size() == 0) {
-            tmp_time_.fromNSec(cloud->header.stamp * 1e3);
-            tmp_frame_id_ = cloud->header.frame_id;
+        if(obstacle_frame_id_.size() == 0) {
+            obstacle_time_.fromNSec(cloud->header.stamp * 1e3);
+            obstacle_frame_id_ = cloud->header.frame_id;
 
             LockedTFListener l = TFListener::getLocked();
             apex_assert(l.l);
@@ -444,10 +455,10 @@ public:
             apex_assert(listener);
             tf::TransformListener& tfl_ = *listener;
 
-            if(!tfl_.waitForTransform(tracking_frame_, tmp_frame_id_, tmp_time_, ros::Duration(0.05))) {
+            if(!tfl_.waitForTransform(tracking_frame_, obstacle_frame_id_, obstacle_time_, ros::Duration(0.05))) {
                 return;
             }
-            tfl_.lookupTransform(tracking_frame_, tmp_frame_id_, tmp_time_, tmp_trafo_);
+            tfl_.lookupTransform(tracking_frame_, obstacle_frame_id_, obstacle_time_, tmp_trafo_);
         }
 
         Eigen::Vector4f center;
@@ -514,8 +525,8 @@ public:
 
 
         geometry_msgs::PoseWithCovarianceStamped measurement;
-        measurement.header.frame_id = tmp_frame_id_;
-        measurement.header.stamp = tmp_time_;
+        measurement.header.frame_id = obstacle_frame_id_;
+        measurement.header.stamp = obstacle_time_;
         measurement.pose.pose.position.x = center[0];
         measurement.pose.pose.position.y = center[1];
         measurement.pose.pose.position.z = center[2];
@@ -606,6 +617,7 @@ private:
     Output* out_obstacles_;
     Output* out_map_;
     Output* out_target_;
+    Output* out_target_predicted_;
 
     Event* event_start_tracking_;
     Event* event_stop_tracking_;
@@ -643,8 +655,8 @@ private:
     tf::StampedTransform tmp_trafo_;
 
     geometry_msgs::PoseWithCovarianceStamped tmp_pose_;
-    std::string tmp_frame_id_;
-    ros::Time tmp_time_;
+    std::string obstacle_frame_id_;
+    ros::Time obstacle_time_;
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr raw_obstacles_;
 };
