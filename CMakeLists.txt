@@ -53,7 +53,7 @@ include_directories(
 #file(GLOB_RECURSE files "include/*")
 #add_custom_target(headers SOURCES ${files})
 
-add_library(schoenbuch
+add_library(${PROJECT_NAME}
     src/data/point.cpp
     src/data/cluster.cpp
 
@@ -63,25 +63,25 @@ add_library(schoenbuch
 
     src/ekf/ekf.cpp
 )
-target_link_libraries(schoenbuch
+target_link_libraries(${PROJECT_NAME}
     ${PCL_COMMON_LIBRARIES}
     ${PCL_SEGMENTATION_LIBRARIES}
     ${catkin_LIBRARIES}
 )
 
 
-add_library(schoenbuch_core SHARED
+add_library(${PROJECT_NAME}_core SHARED
     src/register_schoenbuch.cpp
 )
 
 
-target_link_libraries(schoenbuch_core
+target_link_libraries(${PROJECT_NAME}_core
     ${catkin_LIBRARIES}
     ${csapex_LIBRARIES}
 )
 
 
-add_library(schoenbuch_node
+add_library(${PROJECT_NAME}_node
     src/elevator_detector.cpp
     src/velodyne_segmentation_bogoslavskyi16.cpp
     src/conversion/imu_to_transform.cpp
@@ -107,8 +107,8 @@ add_library(schoenbuch_node
     src/local_scrolling_map.cpp
     src/local_hazard_field.cpp
 )
-add_dependencies(schoenbuch_node ${catkin_EXPORTED_TARGETS})
-target_link_libraries(schoenbuch_node schoenbuch
+add_dependencies(${PROJECT_NAME}_node ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME}
     ${catkin_LIBRARIES}
     ${csapex_LIBRARIES}
     ${csapex_point_cloud_LIBRARIES}
@@ -120,25 +120,21 @@ target_link_libraries(schoenbuch_node schoenbuch
 add_executable(pillar_localization_node
     src/pillar_localization/pillar_localization_node.cpp
 )
-target_link_libraries(pillar_localization_node schoenbuch
+target_link_libraries(pillar_localization_node ${PROJECT_NAME}
     ${catkin_LIBRARIES}
 )
 
 
 install(FILES plugins.xml
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(DIRECTORY snippets
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
-install(TARGETS schoenbuch_node
+install(TARGETS ${PROJECT_NAME}_node ${PROJECT_NAME} pillar_localization_node
         ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-        RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
+        RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
-install(TARGETS schoenbuch
-        ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-        RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
 install(TARGETS pillar_localization_node
-        ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-        RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
+        DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
 

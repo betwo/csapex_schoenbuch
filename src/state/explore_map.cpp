@@ -126,7 +126,12 @@ private:
                 planner_ = "summit_forward";
             }
 
-            goal.goal.algorithm.data = planner_;
+            // use default follower
+            // TODO: make configurable
+            follower_ = "";
+
+            goal.goal.planning_algorithm.data = planner_;
+            goal.goal.following_algorithm.data = follower_;
 
             ROS_WARN("exploring: send goal");
 
@@ -305,6 +310,7 @@ private:
 
     bool last_planning_failed_;
     std::string planner_;
+    std::string follower_;
     nav_msgs::OccupancyGrid last_map;
 
     cv::Mat search_space;
