@@ -3,9 +3,9 @@
 
 class Cluster;
 
-struct Point
+struct ClusteredPoint
 {
-    Point();
+    ClusteredPoint();
 
     float x;
     float y;
@@ -21,8 +21,8 @@ struct Point
 
     Cluster* cluster;
 
-    double distanceXYZ(const Point& other);
-    double distanceXY(const Point& other);
+    double distanceXYZ(const ClusteredPoint& other);
+    double distanceXY(const ClusteredPoint& other);
     double range();
 };
 

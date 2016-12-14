@@ -4,7 +4,7 @@
 #include "data/point.h"
 #include <vector>
 
-struct Point;
+struct ClusteredPoint;
 
 struct Cluster
 {
@@ -14,16 +14,16 @@ struct Cluster
     int col_start;
     int col_end;
 
-    std::vector<Point*> pts;
+    std::vector<ClusteredPoint*> pts;
 
     void merge(Cluster* other);
-    void add(Point* p);
+    void add(ClusteredPoint* p);
 
     bool empty();
 
     void clear();
 
-    Point getMean();
+    ClusteredPoint getMean();
     double getWidth();
     double getHeight();
 
@@ -33,7 +33,7 @@ private:
     void calculateMean();
 
 private:
-    Point mean;
+    ClusteredPoint mean;
     double height;
     double width;
     bool dirty_;
