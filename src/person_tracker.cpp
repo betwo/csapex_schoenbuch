@@ -112,6 +112,9 @@ public:
         out_target_ = modifier.addOutput<TransformMessage>("target");
         out_target_predicted_= modifier.addOutput<TransformMessage>("target_predicted");
 
+        out_static_obstacles_ = modifier.addOutput<PointCloudMessage>("static obstacles");
+
+
         event_start_tracking_ = modifier.addEvent("start tracking");
         event_stop_tracking_ = modifier.addEvent("stop tracking");
     }
@@ -123,6 +126,7 @@ public:
         params.addParameter(param::ParameterFactory::declareRange("lifetime/unknown", 1, 100, 10, 1), lifetime_unknown_);
         params.addParameter(param::ParameterFactory::declareRange("lifetime/person", 1, 1000, 150, 1), lifetime_person_);
         params.addParameter(param::ParameterFactory::declareRange("look_ahead_duration", 0.0, 5.0, 1.5, 0.01), look_ahead_duration_);
+        params.addParameter(param::ParameterFactory::declareRange("min_range", 0.0, 3.0, 1.8, 0.01), min_range_);
 
         params.addParameter(param::ParameterFactory::declareRange("min_probability", 0.0, 1.0, 0.2, 0.001), min_probability_);
         params.addParameter(param::ParameterFactory::declareRange("min_count", 1, 64, 10, 1), [this](param::Parameter*p) {
@@ -176,6 +180,9 @@ public:
         if(raw_obstacles_) {
             raw_obstacles_->points.clear();
         }
+        if(static_obstacles_) {
+            static_obstacles_->points.clear();
+        }
         process3dDetections(detections);
 
 
@@ -221,7 +228,15 @@ public:
 
         for(auto it = objects_.begin(); it != objects_.end(); ) {
             DynamicObject& obj = *it;
-            --obj.life;
+            double dx = current_transform_.getOrigin().x() - obj.pose.getOrigin().x();
+            double dy = current_transform_.getOrigin().y() - obj.pose.getOrigin().y();
+            double distance = hypot(dx, dy);
+
+            if(distance > min_range_) {
+                --obj.life;
+            } else {
+                ainfo << "obstacle is close: " << distance << ": " << dx << ", " << dy << std::endl;
+            }
             if(obj.life <= 0) {
                 if(tracking_id == obj.id) {
                     tracking_id = -1;
@@ -249,9 +264,17 @@ public:
                 target_predicted->value.setOrigin(target->value.getOrigin() + obj.vel * look_ahead_duration_);
             }
 
+            apex_assert(!std::isnan(obj.pose.getOrigin().x()));
+            apex_assert(!std::isnan(obj.pose.getOrigin().y()));
+            apex_assert(!std::isnan(obj.vel.x()));
+            apex_assert(!std::isnan(obj.vel.y()));
             obj.pose.setOrigin(obj.pose.getOrigin() + obj.vel * dt);
+            apex_assert(!std::isnan(obj.pose.getOrigin().x()));
+            apex_assert(!std::isnan(obj.pose.getOrigin().y()));
 
             obj.vel *= velocity_decay_;
+            apex_assert(!std::isnan(obj.vel.x()));
+            apex_assert(!std::isnan(obj.vel.y()));
 
             marker.action = visualization_msgs::Marker::ADD;
 
@@ -363,8 +386,16 @@ public:
 
         if(raw_obstacles_) {
             PointCloudMessage::Ptr obstacles = std::make_shared<PointCloudMessage>(obstacle_frame_id_, obstacle_time_.toNSec() * 1e-3);
+            raw_obstacles_->header.stamp = obstacle_time_.toNSec() * 1e-3;
             obstacles->value = raw_obstacles_;
             msg::publish(out_obstacles_, obstacles);
+        }
+
+        if(static_obstacles_) {
+            PointCloudMessage::Ptr obstacles = std::make_shared<PointCloudMessage>(obstacle_frame_id_, obstacle_time_.toNSec() * 1e-3);
+            static_obstacles_->header.stamp = obstacle_time_.toNSec() * 1e-3;
+            obstacles->value = static_obstacles_;
+            msg::publish(out_static_obstacles_, obstacles);
         }
     }
 
@@ -570,6 +601,10 @@ public:
             raw_obstacles_.reset(new pcl::PointCloud<pcl::PointXYZ>);
             raw_obstacles_->header = cloud->header;
         }
+        if(!static_obstacles_) {
+            static_obstacles_.reset(new pcl::PointCloud<pcl::PointXYZ>);
+            static_obstacles_->header = cloud->header;
+        }
 
         raw_obstacles_->header.stamp = cloud->header.stamp;
 
@@ -581,7 +616,18 @@ public:
                 pt.z = p.z;
                 raw_obstacles_->points.push_back(pt);
             }
+
+            if(best_fit && !best_fit->dynamic_) {
+                for(const PointT& p : *cloud) {
+                    pcl::PointXYZ pt;
+                    pt.x = p.x;
+                    pt.y = p.y;
+                    pt.z = p.z;
+                    static_obstacles_->points.push_back(pt);
+                }
+            }
         }
+
 
         if(!best_fit) {
             ainfo << "new object at " << pose.getOrigin().x() << " / " << pose.getOrigin().y() << std::endl;
@@ -615,6 +661,7 @@ private:
     Output* out_marker_;
     Output* out_people_;
     Output* out_obstacles_;
+    Output* out_static_obstacles_;
     Output* out_map_;
     Output* out_target_;
     Output* out_target_predicted_;
@@ -636,6 +683,8 @@ private:
     int velocity_interval_;
     double velocity_decay_;
     double look_ahead_duration_;
+
+    double min_range_;
 
     double min_probability_;
     double min_count_;
@@ -659,6 +708,7 @@ private:
     ros::Time obstacle_time_;
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr raw_obstacles_;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr static_obstacles_;
 };
 
 void DynamicObject::update(const ros::Time& time, const tf::Pose& measurement)
@@ -683,12 +733,18 @@ void DynamicObject::update(const ros::Time& time, const tf::Pose& measurement)
         ros::Duration dt = time - history.front().first;
 
         tf::Vector3 new_vel = (1.0 / dt.toSec()) * delta;
-        if(new_vel.length() < 0.25) {
+        apex_assert(!std::isnan(new_vel.x()));
+        apex_assert(!std::isnan(new_vel.y()));
+
+        if(new_vel.length() < 0.25 && !vel.isZero()) {
             // keep orientation for small velocities
-            vel = vel / vel.length() * new_vel.length();
+            new_vel = vel / vel.length() * new_vel.length();
         } else {
             vel = new_vel;
         }
+
+        apex_assert(!std::isnan(vel.x()));
+        apex_assert(!std::isnan(vel.y()));
     }
 
     ++count;
