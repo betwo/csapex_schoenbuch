@@ -150,7 +150,7 @@ public:
 
             double mz = std::min(pa.z, std::min(pb.z, pc.z));
 
-            bool inserted = false;
+//            bool inserted = false;
 
             if(tilt < max_floor_angle_) {
 
