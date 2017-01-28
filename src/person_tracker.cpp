@@ -370,6 +370,27 @@ public:
                 }
             }
 
+            if(candidates.empty()) {
+                awarn << "no person detected, checking dynamic objects" << std::endl;
+                for(const DynamicObject& o : objects_) {
+                    if(!o.dynamic_) {
+                        continue;
+                    }
+
+                    tf::Pose local_pose = base_link_to_world * o.pose;
+
+                    double x = local_pose.getOrigin().x();
+                    double y = local_pose.getOrigin().y();
+
+                    ainfo << "-  " << x << " / " << y << std::endl;
+
+                    if(x > start_x_range_.first && x < start_x_range_.second &&
+                            y > start_y_range_.first && y < start_y_range_.second) {
+                        candidates.push_back(&o);
+                    }
+                }
+            }
+
             if(candidates.size() == 1) {
                 tracking_id = candidates.front()->id;
                 event_start_tracking_->trigger();
@@ -608,7 +629,7 @@ public:
 
         raw_obstacles_->header.stamp = cloud->header.stamp;
 
-        if(!best_fit || !isPerson(*best_fit)) {
+        if(!best_fit || best_fit->id != tracking_id) {
             for(const PointT& p : *cloud) {
                 pcl::PointXYZ pt;
                 pt.x = p.x;
