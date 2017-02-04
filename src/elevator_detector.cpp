@@ -59,9 +59,9 @@ public:
             if(!inside_ || elev != inside_.get()) {
                 inside_ = elev;
                 if(elev) {
-                    event_enter_->trigger();
+                    msg::trigger(event_enter_);
                 } else {
-                    event_leave_->trigger();
+                    msg::trigger(event_leave_);
                 }
             }
         }

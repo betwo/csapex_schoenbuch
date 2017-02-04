@@ -1,6 +1,5 @@
-
 /// PROJECT
-#include <csapex/model/node.h>
+#include <csapex_ros/actionlib_node.h>
 #include <csapex_ros/ros_node.h>
 #include <csapex/msg/io.h>
 #include <csapex/param/parameter_factory.h>
@@ -14,7 +13,6 @@
 
 /// SYSTEM
 #include <path_msgs/NavigateToGoalAction.h>
-#include <actionlib/client/simple_action_client.h>
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <ros/ros.h>
@@ -28,7 +26,7 @@ using namespace csapex::connection_types;
 namespace csapex
 {
 
-class ExploreMap : public RosNode
+class ExploreMap : public ActionlibNode<path_msgs::NavigateToGoalAction>
 {
 public:
     ExploreMap()
@@ -41,8 +39,6 @@ public:
         in_pose_ = modifier.addInput<TransformMessage>("Robot Pose");
 
         out_ss_ = modifier.addOutput<nav_msgs::OccupancyGrid>("Search Space");
-
-        event_done_ = modifier.addEvent("done");
     }
 
     void setupParameters(csapex::Parameterizable& params) override
@@ -58,7 +54,7 @@ public:
 
     void setupROS() override
     {
-        client_ = std::make_shared<actionlib::SimpleActionClient<path_msgs::NavigateToGoalAction>>("navigate_to_goal", true);
+        setupClient("navigate_to_goal", true);
     }
 
     void processROS() override
@@ -100,7 +96,7 @@ private:
         msg::publish(out_ss_, shared_ptr_tools::to_std_shared(ss));
 
         if(done_) {
-            event_done_->trigger();
+            msg::trigger(event_done_);
 
         } else {
             path_msgs::NavigateToGoalGoal goal;
@@ -135,10 +131,7 @@ private:
 
             ROS_WARN("exploring: send goal");
 
-            client_->sendGoal(goal,
-                              boost::bind(&ExploreMap::doneCb, this, _1, _2),
-                              boost::bind(&ExploreMap::activeCallback, this),
-                              boost::bind(&ExploreMap::feedbackCallback, this, _1));
+            sendGoal(goal);
 
             exploring_ = true;
         }
@@ -278,17 +271,8 @@ private:
     }
 
 
-    void feedbackCallback(const path_msgs::NavigateToGoalFeedbackConstPtr&)
-    {
 
-    }
-
-    void activeCallback()
-    {
-
-    }
-
-    void doneCb(const actionlib::SimpleClientGoalState& /*state*/,
+    void processResultCallback(const actionlib::SimpleClientGoalState& /*state*/,
                              const path_msgs::NavigateToGoalResultConstPtr& result)
     {
         ROS_WARN("done exploring");
@@ -323,8 +307,6 @@ private:
 
     int init_mode_;
     int failure_mode_;
-
-    std::shared_ptr<actionlib::SimpleActionClient<path_msgs::NavigateToGoalAction>> client_;
 };
 
 }

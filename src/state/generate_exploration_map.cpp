@@ -12,8 +12,6 @@
 #include <csapex/signal/event.h>
 
 /// SYSTEM
-#include <path_msgs/NavigateToGoalAction.h>
-#include <actionlib/client/simple_action_client.h>
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <ros/ros.h>
@@ -92,7 +90,7 @@ private:
         msg::publish(out_ss_, shared_ptr_tools::to_std_shared(ss));
 
         if(done_) {
-            event_done_->trigger();
+            msg::trigger(event_done_);
         }
     }
 

@@ -240,7 +240,7 @@ public:
             if(obj.life <= 0) {
                 if(tracking_id == obj.id) {
                     tracking_id = -1;
-                    event_stop_tracking_->trigger();
+                    msg::trigger(event_stop_tracking_);
                 }
                 it = objects_.erase(it);
                 continue;
@@ -393,7 +393,7 @@ public:
 
             if(candidates.size() == 1) {
                 tracking_id = candidates.front()->id;
-                event_start_tracking_->trigger();
+                msg::trigger(event_start_tracking_);
             } else if(!candidates.empty()) {
                 awarn << "too many candidates" << std::endl;
             } else {
