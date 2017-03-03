@@ -127,9 +127,9 @@ pcl::PointCloud<pcl::PointXYZI>::ConstPtr PillarLocalization::getUndistortedClou
     return undistorted_cloud_;
 }
 
-bool PillarLocalization::applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input, bool _undistort, bool only_absolute)
+bool PillarLocalization::applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input, bool only_absolute)
 {
-    undistorted_cloud_ = _undistort ? undistort(input) : input;
+    undistorted_cloud_ = undistort_ ? undistort(input) : input;
 
     std::vector<Pillar> pillars = pillar_extractor_.findPillars(undistorted_cloud_);
 
@@ -280,7 +280,7 @@ void PillarLocalization::updatePose(ros::Time current_stamp)
 
 bool PillarLocalization::fixPosition(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input)
 {
-    return applyMeasurement(input, true, true);
+    return applyMeasurement(input, true);
 }
 
 void PillarLocalization::applyOdometry(const nav_msgs::Odometry &odom)

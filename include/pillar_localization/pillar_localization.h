@@ -22,7 +22,7 @@ public:
 
     bool fixPosition(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input);
 
-    bool applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input, bool undistort, bool only_absolute = false);
+    bool applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input, bool only_absolute = false);
     void applyOdometry(const nav_msgs::Odometry& odom);
 
     void reset();
@@ -37,6 +37,8 @@ public:
     int init_step_;
     int init_steps_;
     bool init_;
+
+    bool undistort_;
 
     std::string fixed_frame_;
     ros::Duration scan_duration_;
