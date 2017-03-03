@@ -79,6 +79,7 @@ public:
         params.addParameter(param::ParameterFactory::declareRange("pillar/radius threshold", 0.000, 1.0, 0.055, 0.001),
                             localization_.pillar_extractor_.pillar_radius_fuzzy_);
 
+        params.addParameter(param::ParameterFactory::declareBool("undistortion", true), undistort_);
 
         params.addParameter(param::ParameterFactory::declareTrigger("reset"), [this](param::Parameter*) {
             reset();
@@ -116,7 +117,7 @@ public:
         if(msg::hasMessage(input_odom_)) {
             auto odom = msg::getMessage<nav_msgs::Odometry>(input_odom_);
             localization_.applyOdometry(*odom);
-            localization_.applyMeasurement(cloud);
+            localization_.applyMeasurement(cloud, undistort_);
 
             success = true;
 
@@ -132,7 +133,7 @@ public:
 
         TransformMessage::Ptr result = std::make_shared<TransformMessage>("/pillars", "/base_link");
         result->value = pose;
-        result->stamp_micro_seconds = cloud->header.stamp;
+        result->stamp_micro_seconds = cloud->header.stamp * 1e3;
         result->frame_id = "/pillars";
 
         msg::publish(out_, result);
@@ -159,6 +160,8 @@ private:
 
     bool has_start_pose_;
     tf::Pose start_pose_;
+
+    bool undistort_;
 
     schoenbuch::PillarLocalization localization_;
 };

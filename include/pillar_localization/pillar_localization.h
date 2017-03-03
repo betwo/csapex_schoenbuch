@@ -22,7 +22,7 @@ public:
 
     bool fixPosition(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input);
 
-    bool applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input, bool only_absolute = false);
+    bool applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& input, bool undistort, bool only_absolute = false);
     void applyOdometry(const nav_msgs::Odometry& odom);
 
     void reset();

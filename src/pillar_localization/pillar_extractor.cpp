@@ -96,7 +96,7 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
                 if((int) c->pts.size() < cluster_min_size_ || (int) c->pts.size() > cluster_max_size_) {
                     c->clear();
 
-                } else if(cluster_max_diameter_ > 0.0) {
+                } else if(cluster_max_diameter_ > 0.0 && !c->empty()) {
                     double diameter = c->pts.front()->distanceXYZ(*c->pts.back());
                     if(diameter > cluster_max_diameter_) {
                         c->clear();
@@ -172,7 +172,7 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
 
             std::sort(intensities.begin(), intensities.end());
 
-            if(intensities.back() < pillar_min_intensity_) {
+            if(intensities.empty() || intensities.back() < pillar_min_intensity_) {
                 c.clear();
             } else {
                 filtered_clusters.push_back(&c);
