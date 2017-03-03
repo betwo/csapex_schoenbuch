@@ -197,7 +197,7 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
                                 double distance = p1->distanceXYZ(*p2);
                                 if(distance < cluster_distance_euclidean_) {
                                     c1->merge(c2);
-                                    ROS_INFO_STREAM("euclidean merging");
+//                                    ROS_INFO_STREAM("euclidean merging");
                                     merged = true;
                                     break;
                                 }
@@ -245,14 +245,14 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
             p.measured_radius = r;
             pillars.push_back(p);
 
-            ROS_INFO_STREAM("found pillar with " << c.pts.size() << " points" <<
-                            ", error: " << error << ". r: " << r <<
-                            ", up: " << W << ", centre: " << C);
+//            ROS_INFO_STREAM("found pillar with " << c.pts.size() << " points" <<
+//                            ", error: " << error << ". r: " << r <<
+//                            ", up: " << W << ", centre: " << C);
         } else {
 
-            ROS_WARN_STREAM("reject pillar with " << c.pts.size() << " points" <<
-                            ", error: " << error << ". r: " << r <<
-                            ", up: " << W << ", centre: " << C);
+//            ROS_WARN_STREAM("reject pillar with " << c.pts.size() << " points" <<
+//                            ", error: " << error << ". r: " << r <<
+//                            ", up: " << W << ", centre: " << C);
         }
     }
 

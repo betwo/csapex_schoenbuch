@@ -117,7 +117,7 @@ pcl::PointCloud<pcl::PointXYZI>::ConstPtr PillarLocalization::undistort(const pc
     ros::WallTime profile_end = ros::WallTime::now();
 
     ros::WallDuration profile = profile_end - profile_start;
-    ROS_WARN_STREAM("transforming the point cloud took " << (profile * 1e3) << "ms");
+    //ROS_WARN_STREAM("transforming the point cloud took " << (profile * 1e3) << "ms");
 
     return res;
 }
@@ -135,7 +135,7 @@ bool PillarLocalization::applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>:
 
     if(!init_) {
         if(pillars.size() != 3) {
-            ROS_WARN_STREAM("cannot initialize, need exactly 3 pillar candiates, have " << pillars.size());
+            //ROS_WARN_STREAM("cannot initialize, need exactly 3 pillar candiates, have " << pillars.size());
             return false;
         }
 
@@ -143,7 +143,7 @@ bool PillarLocalization::applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>:
         ++init_step_;
 
         if(init_step_ <= init_steps_) {
-            ROS_INFO_STREAM("initialization: " << (init_step_ / (double) init_steps_ * 100.0) << " %");
+            //ROS_INFO_STREAM("initialization: " << (init_step_ / (double) init_steps_ * 100.0) << " %");
             return false;
         }
 
@@ -181,14 +181,14 @@ bool PillarLocalization::applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>:
                     d[k] += dists_ref[k];
                 }
 
-                ROS_WARN_STREAM("set " << i << ": " << dists_ref[0] << ", " << dists_ref[1] << ", " << dists_ref[2]);
+                //ROS_WARN_STREAM("set " << i << ": " << dists_ref[0] << ", " << dists_ref[1] << ", " << dists_ref[2]);
             }
 
             for(std::size_t k = 0; k < 3; ++k) {
                 d[k] /= n;
             }
 
-            ROS_WARN_STREAM("mean: " << d[0] << ", " << d[1] << ", " << d[2]);
+            //ROS_WARN_STREAM("mean: " << d[0] << ", " << d[1] << ", " << d[2]);
 
             //            int arg_min_k = 0;
             //            for(int k = 1; k < 3; ++k) {
@@ -210,7 +210,7 @@ bool PillarLocalization::applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>:
             std::sort(pillars_resorted.begin(), pillars_resorted.end());
 
 
-            ROS_WARN_STREAM("sorted: " << pillars_resorted[0].first << ", " << pillars_resorted[1].first << ", " << pillars_resorted[2].first);
+            //ROS_WARN_STREAM("sorted: " << pillars_resorted[0].first << ", " << pillars_resorted[1].first << ", " << pillars_resorted[2].first);
 
             // synthesize new pillars with the mean distances
             double alpha[3];
@@ -220,7 +220,7 @@ bool PillarLocalization::applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>:
                 alpha[k] = std::acos((d1*d1 + d2*d2 - d[k]*d[k]) / (2 * d1 * d2));
             }
 
-            ROS_WARN_STREAM("angles: " << alpha[0] << ", " << alpha[1] << ", " << alpha[2] << "  |  " << (alpha[0] + alpha[1] + alpha[2]));
+            //ROS_WARN_STREAM("angles: " << alpha[0] << ", " << alpha[1] << ", " << alpha[2] << "  |  " << (alpha[0] + alpha[1] + alpha[2]));
 
 
             std::vector<Pillar> pillars_synth;
@@ -242,10 +242,10 @@ bool PillarLocalization::applyMeasurement(const pcl::PointCloud<pcl::PointXYZI>:
             init_ = true;
         }
 
-        ROS_INFO("initialization done");
+        //ROS_INFO("initialization done");
     }
 
-    ROS_INFO_STREAM(pillars.size() << " pillar candidates");
+    //ROS_INFO_STREAM(pillars.size() << " pillar candidates");
 
     bool success = false;
 

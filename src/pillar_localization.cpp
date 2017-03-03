@@ -132,7 +132,7 @@ public:
         tf::Transform pose = localization_.getPose();
 
         TransformMessage::Ptr result = std::make_shared<TransformMessage>("/pillars", "/base_link");
-        result->value = pose;
+        result->value = pose.inverse();
         result->stamp_micro_seconds = cloud->header.stamp * 1e3;
         result->frame_id = "/pillars";
 
@@ -147,7 +147,7 @@ public:
         *result_rel = *result;
         result_rel->frame_id = "odom";
 
-        result_rel->value = pose * start_pose_.inverse();
+        result_rel->value = (pose * start_pose_.inverse()).inverse();
 
         msg::publish(out_rel_, result_rel);
     }

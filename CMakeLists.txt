@@ -20,6 +20,7 @@ else ()
   set (CMAKE_CXX_STANDARD 11)
 endif ()
 
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
