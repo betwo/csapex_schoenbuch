@@ -8,6 +8,7 @@
 #include <csapex_ros/ros_message_conversion.h>
 #include <csapex_ros/yaml_io.hpp>
 #include <csapex_transform/transform_message.h>
+#include <csapex_core_plugins/timestamp_message.h>
 
 /// SYSTEM
 #include <tf/tf.h>
@@ -32,7 +33,7 @@ public:
     void setup(csapex::NodeModifier& modifier) override
     {
         in_wheel_ = modifier.addInput<std_msgs::Float64MultiArray>("wheel odom");
-        in_odom_= modifier.addInput<nav_msgs::Odometry>("odom");
+        in_odom_= modifier.addMultiInput<GenericPointerMessage<nav_msgs::Odometry>, TimestampMessage>("odom or time stamp");
 
         out_ = modifier.addOutput<TransformMessage>("pose");
     }
@@ -62,17 +63,29 @@ public:
 
     void process()
     {
-        auto odom = msg::getMessage<nav_msgs::Odometry>(in_odom_);
+        TimestampMessage::Tp current_stamp;
 
-        ros::Time current_stamp = odom->header.stamp;
+        if(msg::isMessage<GenericPointerMessage<nav_msgs::Odometry>>(in_odom_)) {
+            auto odom = msg::getMessage<nav_msgs::Odometry>(in_odom_);
+            std::chrono::nanoseconds nano(odom->header.stamp.toNSec());
+            current_stamp = TimestampMessage::Tp(std::chrono::duration_cast<std::chrono::microseconds>(nano));
+
+        } else if(msg::isMessage<TimestampMessage>(in_odom_)) {
+            auto time = msg::getMessage<TimestampMessage>(in_odom_);
+            current_stamp = time->value;
+
+        } else {
+            throw std::runtime_error("invalid input type");
+        }
+
         if(!init_) {
             last_stamp_ = current_stamp;
             init_ = true;
         }
 
-        ros::Duration dur = current_stamp - last_stamp_;
+        auto msec = std::chrono::duration_cast<std::chrono::microseconds>(current_stamp - last_stamp_);
         last_stamp_ = current_stamp;
-        double dt = dur.toSec();
+        double dt = msec.count() * 1e-6;
 
         auto wheel_odom = msg::getMessage<std_msgs::Float64MultiArray>(in_wheel_);
 
@@ -114,7 +127,8 @@ public:
     double theta;
 
     bool init_;
-    ros::Time last_stamp_;
+
+    TimestampMessage::Tp last_stamp_;
 
 
 private:
