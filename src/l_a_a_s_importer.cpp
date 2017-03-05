@@ -11,6 +11,7 @@
 #include <csapex_ros/yaml_io.hpp>
 #include <csapex_core_plugins/timestamp_message.h>
 #include <csapex/param/range_parameter.h>
+#include <csapex/param/interval_parameter.h>
 #include <csapex/msg/end_of_sequence_message.h>
 
 /// SYSTEM
@@ -64,10 +65,27 @@ public:
             yield();
         });
 
-        params.addParameter(param::ParameterFactory::declareRange("frame", 0, 1, 0, 1), [this](param::Parameter* p) {
+        params.addParameter(param::ParameterFactory::declareRange("frame", 0, 1, 0, 1), [this](param::Parameter* p)
+        {
 
         });
+
+        params.addParameter(param::ParameterFactory::declareInterval("range", 0, 1, 0, 1, 1), [this](param::Parameter* p)
+        {
+            updateRange();
+        });
     }
+
+    void updateRange()
+    {
+        param::IntervalParameterPtr range = getParameter<param::IntervalParameter>("range");
+        apex_assert(range);
+        last_wheels_ = wheel_velocities_.begin();
+        std::advance(last_wheels_, range->upper<int>());
+
+        yield();
+    }
+
     void import()
     {
         bf3::path gps(gps_file_);
@@ -229,8 +247,13 @@ public:
             ++line_no;
         }
 
-        param::RangeParameterPtr range = getParameter<param::RangeParameter>("frame");
+        param::RangeParameterPtr frame = getParameter<param::RangeParameter>("frame");
+        frame->setMax<int>(wheel_velocities_.size());
+
+        param::IntervalParameterPtr range = getParameter<param::IntervalParameter>("range");
         range->setMax<int>(wheel_velocities_.size());
+
+        updateRange();
 
     }
 
@@ -241,6 +264,7 @@ public:
 
     void process() override
     {
+
         if(request_import_) {
             request_import_ = false;
             import();
@@ -251,6 +275,9 @@ public:
                 next_gps_pose_ = poses_gps_.begin();
                 next_odom_pose_ = poses_odom_.begin();
                 next_wheels_ = wheel_velocities_.begin();
+
+                param::IntervalParameterPtr range = getParameter<param::IntervalParameter>("range");
+                std::advance(next_wheels_, range->lower<int>());
             }
         }
 
@@ -260,7 +287,7 @@ public:
         }
 
         // wheel velocities are used as anchor, so they must be available
-        if(next_wheels_ >= wheel_velocities_.end()) {
+        if(next_wheels_ >= last_wheels_) {
             msg::publish(out_gps_pose_, connection_types::makeEmpty<connection_types::EndOfSequenceMessage>());
             msg::publish(out_odom_pose_, connection_types::makeEmpty<connection_types::EndOfSequenceMessage>());
             msg::publish(out_wheels_, connection_types::makeEmpty<connection_types::EndOfSequenceMessage>());
@@ -348,6 +375,7 @@ private:
     std::vector<tf::StampedTransform>::iterator next_gps_pose_;
     std::vector<tf::StampedTransform>::iterator next_odom_pose_;
     std::vector<std::pair<std::chrono::microseconds, std::shared_ptr<std_msgs::Float64MultiArray>>>::iterator next_wheels_;
+    std::vector<std::pair<std::chrono::microseconds, std::shared_ptr<std_msgs::Float64MultiArray>>>::iterator last_wheels_;
 
 };
 

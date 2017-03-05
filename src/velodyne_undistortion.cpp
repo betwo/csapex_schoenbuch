@@ -90,9 +90,9 @@ public:
                     fixed_frame,
                     input->header.frame_id,
                     start_time,
-                    ros::Duration(0.3)))
+                    ros::Duration(std::max(0.0, scan_offset_) + 0.1)))
         {
-            aerr << "cannot transform cloud at time " << end_time << ", now is " << ros::Time::now()<< std::endl;
+            aerr << "cannot transform start cloud at time " << start_time << ", now is " << ros::Time::now()<< std::endl;
             return;
         }
 
@@ -100,9 +100,9 @@ public:
                     fixed_frame,
                     input->header.frame_id,
                     end_time,
-                    ros::Duration(0.3)))
+                    ros::Duration(std::max(0.0, scan_offset_) + 0.1)))
         {
-            aerr << "cannot transform cloud at time " << end_time << ", now is " << ros::Time::now() << std::endl;
+            aerr << "cannot transform end cloud at time " << end_time << ", now is " << ros::Time::now() << std::endl;
             return;
         }
 
