@@ -136,7 +136,7 @@ public:
                 std::vector<std::string> csv_values;
                 boost::split(csv_values, line, boost::is_any_of("\t "));
 
-                double timestamp = str2double(csv_values[(int) Gps::time]);
+                double timestamp = str2double(csv_values.at((int) Gps::time));
 
                 ros::Time stamp;
                 stamp.fromSec(timestamp);
@@ -173,7 +173,7 @@ public:
                     date, yaw, pitch, roll, x, y, z
                 };
 
-                double timestamp = str2double(csv_values[(int) Odom::date]);
+                double timestamp = str2double(csv_values.at((int) Odom::date));
 
                 ros::Time stamp;
                 stamp.fromSec(timestamp);
@@ -226,7 +226,7 @@ public:
                 };
 
 
-                double timestamp = str2double(csv_values[(int) FullLog::date]);
+                double timestamp = str2double(csv_values.at((int) FullLog::date));
 
                 std::chrono::microseconds stamp(static_cast<int64_t>(timestamp * 1e6));
 
@@ -326,7 +326,7 @@ public:
                 msg::publish(out_gps_pose_, transform2Message(*next_gps_pose_));
             }
 
-            if(next_gps_pose_ < poses_gps_.end()) {
+            if(next_odom_pose_ < poses_odom_.end()) {
                 msg::publish(out_odom_pose_, transform2Message(*next_odom_pose_));
             }
         }

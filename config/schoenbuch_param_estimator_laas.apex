@@ -1,166 +1,12 @@
 #!/home/buck/ws/apex/devel/lib/csapex/csapex_main
-adapters:
-  []
-connections:
-  - uuid: csapex::EvaOptimizer_1:|:out_y_icr_r
-    targets:
-      - csapex::ParamEstimator_0:|:in_y_icr_r
-    types:
-      - default
-  - uuid: csapex::EvaOptimizer_1:|:event_4
-    targets:
-      - csapex::ParamEstimator_0:|:slot_0
-      - csapex::PoseDifference_0:|:slot_0
-      - csapex::GenerateRelativeTransform_0:|:slot_0
-      - csapex::LAASImporter_1:|:slot_0
-      - csapex::GenerateRelativeTransform_1:|:slot_0
-    types:
-      - default
-      - default
-      - default
-      - default
-      - default
-  - uuid: csapex::LAASImporter_1:|:out_2
-    targets:
-      - csapex::ParamEstimator_0:|:in_0
-    types:
-      - default
-  - uuid: csapex::EvaOptimizer_1:|:out_alpha_l
-    targets:
-      - csapex::ParamEstimator_0:|:in_alpha_l
-    types:
-      - default
-  - uuid: csapex::LAASImporter_1:|:out_3
-    targets:
-      - csapex::ParamEstimator_0:|:in_1
-      - csapex::ExportRos_13:|:in_0
-      - csapex::MarkerMessageDetector_2:|:in_0
-    types:
-      - default
-      - default
-      - default
-  - uuid: csapex::EvaOptimizer_1:|:out_y_icr_l
-    targets:
-      - csapex::ParamEstimator_0:|:in_y_icr_l
-    types:
-      - default
-  - uuid: csapex::EvaOptimizer_1:|:event_0
-    targets:
-      - csapex::LAASImporter_1:|:slot_0
-    types:
-      - default
-  - uuid: csapex::MarkerMessageDetector_0:|:event_0
-    targets:
-      - csapex::EvaOptimizer_1:|:slot_4
-    types:
-      - default
-  - uuid: csapex::MarkerMessageDetector_2:|:event_0
-    targets:
-      - csapex::MakeScreenshot_0:|:slot_0
-    types:
-      - default
-  - uuid: csapex::EvaOptimizer_1:|:out_x_icr
-    targets:
-      - csapex::ParamEstimator_0:|:in_x_icr
-    types:
-      - default
-  - uuid: csapex::GenericTextCombiner_0:|:out_0
-    targets:
-      - csapex::MakeScreenshot_0:|:in_format
-    types:
-      - default
-  - uuid: csapex::GenerateRelativeTransform_1:|:out_0
-    targets:
-      - csapex::GenerateRelativeTransform_0:|:in_0
-      - csapex::TransformToOdometry_2:|:in_0
-      - csapex::TransformToOdometry_6:|:in_0
-    types:
-      - default
-      - default
-      - default
-  - uuid: csapex::ParamEstimator_0:|:out_0
-    targets:
-      - csapex::PoseDifference_0:|:in_0
-      - csapex::ChangeTransformFrames_0:|:in_0
-    types:
-      - default
-      - default
-  - uuid: csapex::TransformToOdometry_2:|:out_0
-    targets:
-      - csapex::ExportRos_7:|:in_0
-    types:
-      - default
-  - uuid: csapex::TransformToOdometry_5:|:out_0
-    targets:
-      - csapex::ExportRos_12:|:in_0
-    types:
-      - default
-  - uuid: csapex::TransformToOdometry_1:|:out_0
-    targets:
-      - csapex::ExportRos_8:|:in_0
-    types:
-      - default
-  - uuid: csapex::ChangeTransformFrames_0:|:out_0
-    targets:
-      - csapex::TransformToOdometry_1:|:in_0
-    types:
-      - default
-  - uuid: csapex::EvaOptimizer_1:|:out_0
-    targets:
-      - csapex::TextDisplay_13:|:in_0
-    types:
-      - default
-  - uuid: csapex::GenerateRelativeTransform_0:|:out_0
-    targets:
-      - csapex::PoseDifference_0:|:in_1
-      - csapex::TransformToOdometry_5:|:in_0
-    types:
-      - default
-      - default
-  - uuid: csapex::TransformToOdometry_6:|:out_0
-    targets:
-      - csapex::ExportRos_11:|:in_0
-    types:
-      - default
-  - uuid: csapex::EvaOptimizer_1:|:out_1
-    targets:
-      - csapex::TextDisplay_12:|:in_0
-    types:
-      - default
-  - uuid: csapex::PoseDifference_0:|:out_1
-    targets:
-      - csapex::EvaOptimizer_1:|:slot_4
-      - csapex::MarkerMessageDetector_0:|:in_0
-      - csapex::GenericTextCombiner_0:|:in_0
-    types:
-      - default
-      - default
-      - default
-  - uuid: csapex::EvaOptimizer_1:|:out_alpha_r
-    targets:
-      - csapex::ParamEstimator_0:|:in_alpha_r
-    types:
-      - default
-  - uuid: csapex::LAASImporter_1:|:out_1
-    targets:
-      - csapex::GenerateRelativeTransform_1:|:in_0
-    types:
-      - default
 threads:
-  groups:
-    - name: static
-      id: 2
-    - id: 3
-      name: screenshot
-    - name: export
-      id: 4
   assignments:
-    - uuid: ~
+    - id: 1
+      uuid: ~
+    - uuid: csapex::ParamEstimator_0
       id: 1
     - id: 1
-      uuid: csapex::ParamEstimator_0
-    - uuid: csapex::PoseDifference_0
-      id: 1
+      uuid: csapex::PoseDifference_0
     - uuid: csapex::MarkerMessageDetector_0
       id: 1
     - id: 1
@@ -177,135 +23,111 @@ threads:
       uuid: csapex::ExportRos_7
     - id: 4
       uuid: csapex::ExportRos_8
-    - uuid: csapex::ChangeTransformFrames_0
-      id: 4
+    - id: 4
+      uuid: csapex::ChangeTransformFrames_0
     - uuid: csapex::ExportRos_11
       id: 4
-    - id: 4
-      uuid: csapex::ExportRos_12
-    - uuid: csapex::TransformToOdometry_5
+    - uuid: csapex::ExportRos_12
       id: 4
-    - uuid: csapex::GenerateRelativeTransform_0
-      id: 1
+    - id: 4
+      uuid: csapex::TransformToOdometry_5
+    - id: 1
+      uuid: csapex::GenerateRelativeTransform_0
     - uuid: csapex::LAASImporter_1
       id: 1
     - id: 4
       uuid: csapex::TransformToOdometry_6
     - id: 4
       uuid: csapex::ExportRos_13
-    - uuid: csapex::GenerateRelativeTransform_1
-      id: 1
-    - uuid: csapex::MakeScreenshot_0
+    - id: 1
+      uuid: csapex::GenerateRelativeTransform_1
+    - id: 3
+      uuid: csapex::MakeScreenshot_0
+    - id: 1
+      uuid: csapex::MarkerMessageDetector_2
+    - id: 3
+      uuid: csapex::GenericTextCombiner_0
+  groups:
+    - id: 2
+      name: static
+    - name: screenshot
       id: 3
-    - uuid: csapex::MarkerMessageDetector_2
-      id: 1
-    - uuid: csapex::GenericTextCombiner_0
-      id: 3
-uuid_map:
-  csapex::PointCloudToDepthImage: 1
-  csapex::PointCloudToIntensityImage: 1
-  csapex::PointCount: 1
-  csapex::PoseDifference: 1
-  csapex::OutputDisplay: 2
-  csapex::ParamEstimator: 1
-  csapex::PassThrough: 1
-  csapex::PillarLocalization: 1
-  csapex::SignTransformPublisher: 1
-  csapex::SignalLight: 1
-  csapex::SpinelloClustering: 1
-  csapex::StaticTransform: 3
-  csapex::TransformPublisher: 4
-  csapex::TransformToOdometry: 7
-  csapex::TransformToPose: 4
-  csapex::LabelClusteredPointCloud: 2
-  csapex::MakeScreenshot: 1
-  csapex::MarkerMessageDetector: 3
-  csapex::OdometryToTransform: 2
-  csapex::GenericTextCombiner: 1
-  csapex::ImportRos: 1
-  csapex::IntensityFilter: 1
-  csapex::LAASImporter: 2
-  csapex::EvaOptimizer: 2
-  csapex::ExportRos: 14
-  csapex::ExtractMeasures: 2
-  csapex::FileImporter: 1
-  csapex::GenerateRelativeTransform: 2
-  csapex::TextDisplay: 20
-  csapex::TimePlot: 2
-  csapex::TransformCloud: 1
-  csapex::TransformInverter: 6
-  csapex::CloudRenderer: 2
-  csapex::ClusterPointcloud: 1
-  csapex::Delay: 2
-  csapex::ColorPointCloud: 3
-  csapex::ChangeTransformFrames: 5
+    - name: export
+      id: 4
 nodes:
-  - z: 1189
-    minimized: false
-    muted: false
+  - muted: false
     enabled: true
-    flipped: false
-    exec_mode: 1
-    logger_level: 1
-    type: csapex::ParamEstimator
-    uuid: csapex::ParamEstimator_0
-    max_frequency: 0
-    label: csapex::ParamEstimator_0
-    pos:
-      - 349
-      - 1262
     color:
       - -1
       - -1
       - -1
+    type: csapex::ParamEstimator
+    uuid: csapex::ParamEstimator_0
+    max_frequency: 0
+    minimized: false
     state:
       params:
-        alpha_l:
-          type: range
-          name: alpha_l
-          interactive: true
-          double: 1.053855441301181
-          min: 0.5
-          step: 0.001
-          max: 1.1
-        reset:
-          type: trigger
-          name: reset
         x_icr:
-          type: range
           name: x_icr
           interactive: true
-          double: -0.02554020091057027
+          double: -0.04632174456056385
+          type: range
           min: -0.1
           max: 0
           step: 0.001
+        alpha_l:
+          interactive: true
+          double: 1.072659362817569
+          step: 0.001
+          max: 1.1
+          type: range
+          name: alpha_l
+          min: 0.5
+        alpha_r:
+          interactive: true
+          double: 1.019250703928162
+          name: alpha_r
+          type: range
+          min: 0.5
+          max: 1.1
+          step: 0.001
+        reset:
+          type: trigger
+          name: reset
         y_icr_l:
           type: range
           name: y_icr_l
           interactive: true
-          double: 0.3774708059054879
+          double: 0.7412016867944315
           min: 0.001
           max: 0.75
           step: 0.001
         y_icr_r:
+          max: -0.001
+          step: 0.001
           type: range
           name: y_icr_r
           interactive: true
-          double: -0.7134514914630731
+          double: -0.6557759955975746
           min: -0.75
-          max: -0.001
-          step: 0.001
-        alpha_r:
-          type: range
-          name: alpha_r
-          interactive: true
-          double: 0.8075196804556891
-          min: 0.5
-          max: 1.1
-          step: 0.001
       persistent_params:
         []
-  - type: csapex::PoseDifference
+    flipped: false
+    exec_mode: 1
+    logger_level: 1
+    z: 1189
+    pos:
+      - 349
+      - 1262
+    label: csapex::ParamEstimator_0
+  - state:
+      persistent_params:
+        []
+      params:
+        reset:
+          type: trigger
+          name: reset
+    type: csapex::PoseDifference
     uuid: csapex::PoseDifference_0
     max_frequency: 0
     label: csapex::PoseDifference_0
@@ -323,99 +145,15 @@ nodes:
     flipped: false
     exec_mode: 1
     logger_level: 1
-    state:
-      params:
-        reset:
-          type: trigger
-          name: reset
-      persistent_params:
-        []
   - type: csapex::EvaOptimizer
     uuid: csapex::EvaOptimizer_1
     max_frequency: 0
-    label: csapex::EvaOptimizer_1
     pos:
       - -619
       - 41
-    color:
-      - -1
-      - -1
-      - -1
-    z: 1259
-    minimized: false
-    muted: false
-    enabled: true
-    flipped: false
-    exec_mode: 1
-    logger_level: 1
+    label: csapex::EvaOptimizer_1
     state:
       params:
-        alpha_l:
-          type: range
-          name: alpha_l
-          interactive: true
-          double: 1.053855441301181
-          min: 0.5
-          max: 1.1
-          step: 0.001
-        alpha_r:
-          type: range
-          name: alpha_r
-          interactive: true
-          double: 0.8075196804556891
-          min: 0.5
-          max: 1.1
-          step: 0.001
-        finish:
-          type: trigger
-          name: finish
-        finish_immediately:
-          type: value
-          name: finish_immediately
-          bool: false
-        fitness level:
-          type: progress
-          name: fitness level
-        generation:
-          type: progress
-          name: generation
-        generations:
-          type: range
-          name: generations
-          int: 30
-          min: -1
-          max: 1024
-          step: 1
-        individuals/individuals:
-          type: range
-          name: individuals/individuals
-          int: 200
-          min: 10
-          max: 200
-          step: 1
-        individuals/later_generations:
-          type: range
-          name: individuals/later_generations
-          int: 20
-          min: 10
-          max: 30
-          step: 1
-        individuals/target:
-          type: range
-          name: individuals/target
-          int: 30
-          min: 30
-          max: 30
-          step: 1
-        method:
-          type: set
-          name: method
-          txt: Differential Evolution
-          int: 1
-        perform_evaluation:
-          type: value
-          name: perform_evaluation
-          bool: true
         population:
           type: progress
           name: population
@@ -440,7 +178,7 @@ nodes:
           type: range
           name: x_icr
           interactive: true
-          double: -0.02554020091057027
+          double: -0.04632174456056385
           min: -0.1
           max: 0
           step: 0.001
@@ -448,15 +186,81 @@ nodes:
           type: range
           name: y_icr_l
           interactive: true
-          double: 0.3774708059054879
+          double: 0.7412016867944315
           min: 0.001
           max: 0.75
           step: 0.001
+        finish_immediately:
+          type: value
+          name: finish_immediately
+          bool: false
+        fitness level:
+          type: progress
+          name: fitness level
+        generation:
+          type: progress
+          name: generation
+        alpha_l:
+          type: range
+          name: alpha_l
+          interactive: true
+          double: 1.072659362817569
+          min: 0.5
+          max: 1.1
+          step: 0.001
+        generations:
+          type: range
+          name: generations
+          int: 30
+          min: -1
+          max: 1024
+          step: 1
+        method:
+          type: set
+          name: method
+          txt: Differential Evolution
+          int: 1
+        perform_evaluation:
+          type: value
+          name: perform_evaluation
+          bool: true
+        finish:
+          type: trigger
+          name: finish
+        alpha_r:
+          double: 1.019250703928162
+          min: 0.5
+          max: 1.1
+          step: 0.001
+          type: range
+          name: alpha_r
+          interactive: true
+        individuals/individuals:
+          type: range
+          name: individuals/individuals
+          int: 200
+          min: 10
+          max: 200
+          step: 1
+        individuals/later_generations:
+          type: range
+          name: individuals/later_generations
+          int: 20
+          min: 10
+          max: 30
+          step: 1
+        individuals/target:
+          max: 30
+          step: 1
+          type: range
+          name: individuals/target
+          int: 30
+          min: 30
         y_icr_r:
           type: range
           name: y_icr_r
           interactive: true
-          double: -0.7134514914630731
+          double: -0.6557759955975746
           min: -0.75
           max: -0.001
           step: 0.001
@@ -466,24 +270,35 @@ nodes:
         - x_icr
         - y_icr_l
         - y_icr_r
-  - max_frequency: 0
-    uuid: csapex::MarkerMessageDetector_0
+    exec_mode: 1
     logger_level: 1
     color:
       - -1
       - -1
       - -1
-    label: csapex::MarkerMessageDetector_0
-    flipped: false
-    z: 725
-    exec_mode: 1
+    z: 1267
     minimized: false
+    muted: false
+    enabled: true
+    flipped: false
+  - type: csapex::MarkerMessageDetector
+    uuid: csapex::MarkerMessageDetector_0
+    max_frequency: 0
+    label: csapex::MarkerMessageDetector_0
     pos:
       - 1225
       - 14
+    color:
+      - -1
+      - -1
+      - -1
+    z: 725
+    minimized: false
     muted: false
     enabled: true
-    type: csapex::MarkerMessageDetector
+    flipped: false
+    exec_mode: 1
+    logger_level: 1
     state:
       params:
         type:
@@ -492,22 +307,7 @@ nodes:
           int: 1
       persistent_params:
         []
-  - uuid: csapex::TextDisplay_12
-    max_frequency: 0
-    type: csapex::TextDisplay
-    label: csapex::TextDisplay_12
-    pos:
-      - -69
-      - 391
-    color:
-      - -1
-      - -1
-      - -1
-    z: 1253
-    minimized: false
-    muted: false
-    enabled: true
-    flipped: false
+  - flipped: false
     exec_mode: 1
     logger_level: 1
     dict:
@@ -520,9 +320,24 @@ nodes:
         {}
       persistent_params:
         []
-  - uuid: csapex::TextDisplay_13
-    max_frequency: 0
     type: csapex::TextDisplay
+    uuid: csapex::TextDisplay_12
+    max_frequency: 0
+    label: csapex::TextDisplay_12
+    pos:
+      - -69
+      - 391
+    color:
+      - -1
+      - -1
+      - -1
+    z: 1253
+    minimized: false
+    muted: false
+    enabled: true
+  - type: csapex::TextDisplay
+    uuid: csapex::TextDisplay_13
+    max_frequency: 0
     label: csapex::TextDisplay_12
     pos:
       - -80
@@ -548,9 +363,19 @@ nodes:
         {}
       persistent_params:
         []
-  - uuid: csapex::TransformToOdometry_1
-    max_frequency: 0
+  - muted: false
+    enabled: true
+    flipped: false
+    exec_mode: 1
+    logger_level: 1
+    state:
+      persistent_params:
+        []
+      params:
+        {}
     type: csapex::TransformToOdometry
+    uuid: csapex::TransformToOdometry_1
+    max_frequency: 0
     label: csapex::TransformToOdometry_1
     pos:
       - 1441
@@ -561,18 +386,8 @@ nodes:
       - -1
     z: 1250
     minimized: false
-    muted: false
-    enabled: true
-    flipped: false
-    exec_mode: 1
-    logger_level: 1
-    state:
-      params:
-        {}
-      persistent_params:
-        []
-  - uuid: csapex::TransformToOdometry_2
-    type: csapex::TransformToOdometry
+  - type: csapex::TransformToOdometry
+    uuid: csapex::TransformToOdometry_2
     max_frequency: 0
     label: csapex::TransformToOdometry_1
     pos:
@@ -594,8 +409,8 @@ nodes:
         {}
       persistent_params:
         []
-  - uuid: csapex::ExportRos_7
-    type: csapex::ExportRos
+  - type: csapex::ExportRos
+    uuid: csapex::ExportRos_7
     max_frequency: 0
     label: csapex::ExportRos_7
     pos:
@@ -627,10 +442,25 @@ nodes:
           string: /odom/true/absolute
       persistent_params:
         []
-  - max_frequency: 0
-    uuid: csapex::ExportRos_8
-    label: csapex::ExportRos_7
+  - state:
+      params:
+        topic:
+          type: value
+          name: topic
+          string: /odom/est
+        queue:
+          step: 1
+          type: range
+          name: queue
+          int: 32
+          min: 1
+          max: 32
+      persistent_params:
+        []
     type: csapex::ExportRos
+    uuid: csapex::ExportRos_8
+    max_frequency: 0
+    label: csapex::ExportRos_7
     pos:
       - 2106
       - 1299
@@ -645,25 +475,10 @@ nodes:
     flipped: false
     exec_mode: 1
     logger_level: 1
-    state:
-      params:
-        queue:
-          type: range
-          name: queue
-          int: 32
-          min: 1
-          max: 32
-          step: 1
-        topic:
-          type: value
-          name: topic
-          string: /odom/est
-      persistent_params:
-        []
-  - uuid: csapex::ChangeTransformFrames_0
+  - type: csapex::ChangeTransformFrames
+    uuid: csapex::ChangeTransformFrames_0
     max_frequency: 0
     label: csapex::ChangeTransformFrames_0
-    type: csapex::ChangeTransformFrames
     pos:
       - 904
       - 1364
@@ -690,18 +505,7 @@ nodes:
           string: odom
       persistent_params:
         []
-  - uuid: csapex::ExportRos_11
-    max_frequency: 0
-    label: csapex::ExportRos_6
-    type: csapex::ExportRos
-    pos:
-      - -62
-      - 1473
-    color:
-      - -1
-      - -1
-      - -1
-    z: 1263
+  - z: 1263
     minimized: false
     muted: false
     enabled: true
@@ -709,6 +513,8 @@ nodes:
     exec_mode: 1
     logger_level: 1
     state:
+      persistent_params:
+        []
       params:
         queue:
           type: range
@@ -721,12 +527,21 @@ nodes:
           type: value
           name: topic
           string: /odom
-      persistent_params:
-        []
-  - uuid: csapex::ExportRos_12
+    type: csapex::ExportRos
+    uuid: csapex::ExportRos_11
+    max_frequency: 0
+    label: csapex::ExportRos_6
+    pos:
+      - -62
+      - 1473
+    color:
+      - -1
+      - -1
+      - -1
+  - type: csapex::ExportRos
+    uuid: csapex::ExportRos_12
     max_frequency: 0
     label: csapex::ExportRos_7
-    type: csapex::ExportRos
     pos:
       - 2056
       - 1024
@@ -798,14 +613,33 @@ nodes:
     exec_mode: 1
     logger_level: 1
     state:
+      persistent_params:
+        []
       params:
         {}
-      persistent_params:
-        []
-  - state:
-      persistent_params:
-        []
+  - type: csapex::LAASImporter
+    uuid: csapex::LAASImporter_1
+    max_frequency: 0
+    label: csapex::LAASImporter_1
+    pos:
+      - -681
+      - 1053
+    state:
       params:
+        start:
+          type: trigger
+          name: start
+        wheels:
+          type: path
+          name: wheels
+          value: /home/buck/data/schoenbuch/minnieLogs/log_2016_12_13_12_19_11-onGrass/log_16-12-13_12-20-07/rmp440/rmp440_internal.log
+        frame:
+          type: range
+          name: frame
+          int: 3055
+          min: 0
+          max: 5446
+          step: 1
         gps:
           type: path
           name: gps
@@ -815,7 +649,6 @@ nodes:
           name: odometry
           value: /home/buck/data/schoenbuch/minnieLogs/log_2016_12_13_12_19_11-onGrass/log_16-12-13_12-20-07/pom/pom.log
         range:
-          type: interval
           name: range
           int:
             - 2600
@@ -823,27 +656,9 @@ nodes:
           min: 0
           max: 5446
           step: 1
-        start:
-          type: trigger
-          name: start
-        wheels:
-          type: path
-          name: wheels
-          value: /home/buck/data/schoenbuch/minnieLogs/log_2016_12_13_12_19_11-onGrass/log_16-12-13_12-20-07/rmp440/rmp440_internal.log
-        frame:
-          step: 1
-          type: range
-          name: frame
-          int: 3660
-          min: 0
-          max: 5446
-    type: csapex::LAASImporter
-    uuid: csapex::LAASImporter_1
-    max_frequency: 0
-    label: csapex::LAASImporter_1
-    pos:
-      - -681
-      - 1053
+          type: interval
+      persistent_params:
+        []
     color:
       - -1
       - -1
@@ -855,19 +670,7 @@ nodes:
     flipped: false
     exec_mode: 1
     logger_level: 1
-  - max_frequency: 0
-    uuid: csapex::TransformToOdometry_6
-    label: csapex::TransformToOdometry_6
-    pos:
-      - -474
-      - 1398
-    color:
-      - -1
-      - -1
-      - -1
-    type: csapex::TransformToOdometry
-    z: 1252
-    minimized: false
+  - minimized: false
     muted: false
     enabled: true
     flipped: false
@@ -878,8 +681,35 @@ nodes:
         []
       params:
         {}
-  - uuid: csapex::ExportRos_13
+    type: csapex::TransformToOdometry
+    uuid: csapex::TransformToOdometry_6
+    max_frequency: 0
+    label: csapex::TransformToOdometry_6
+    pos:
+      - -474
+      - 1398
+    color:
+      - -1
+      - -1
+      - -1
+    z: 1252
+  - state:
+      persistent_params:
+        []
+      params:
+        topic:
+          type: value
+          name: topic
+          string: /clock
+        queue:
+          max: 32
+          step: 1
+          type: range
+          name: queue
+          int: 32
+          min: 1
     type: csapex::ExportRos
+    uuid: csapex::ExportRos_13
     max_frequency: 0
     label: csapex::ExportRos_6
     pos:
@@ -896,21 +726,6 @@ nodes:
     flipped: false
     exec_mode: 1
     logger_level: 1
-    state:
-      persistent_params:
-        []
-      params:
-        queue:
-          type: range
-          name: queue
-          int: 32
-          min: 1
-          max: 32
-          step: 1
-        topic:
-          type: value
-          name: topic
-          string: /clock
   - type: csapex::GenerateRelativeTransform
     uuid: csapex::GenerateRelativeTransform_1
     max_frequency: 0
@@ -934,9 +749,29 @@ nodes:
         []
       params:
         {}
-  - uuid: csapex::MakeScreenshot_0
-    max_frequency: 0
+  - state:
+      params:
+        format:
+          type: value
+          name: format
+          interactive: true
+          string: laas_8344.569742_%s_wxh.png
+        path:
+          type: path
+          name: path
+          value: /tmp/optimization
+        quality:
+          min: 0
+          max: 100
+          step: 1
+          type: range
+          name: quality
+          int: 80
+      persistent_params:
+        []
     type: csapex::MakeScreenshot
+    uuid: csapex::MakeScreenshot_0
+    max_frequency: 0
     label: csapex::MakeScreenshot_0
     pos:
       - 464
@@ -952,33 +787,13 @@ nodes:
     flipped: false
     exec_mode: 1
     logger_level: 1
-    state:
-      persistent_params:
-        []
-      params:
-        format:
-          type: value
-          name: format
-          interactive: true
-          string: laas_590574_%s_wxh.png
-        path:
-          type: path
-          name: path
-          value: /tmp/optimization
-        quality:
-          type: range
-          name: quality
-          int: 80
-          min: 0
-          max: 100
-          step: 1
-  - uuid: csapex::MarkerMessageDetector_2
+  - type: csapex::MarkerMessageDetector
+    uuid: csapex::MarkerMessageDetector_2
     max_frequency: 0
     label: csapex::MarkerMessageDetector_0
     pos:
       - -51
       - 615
-    type: csapex::MarkerMessageDetector
     color:
       - -1
       - -1
@@ -998,9 +813,30 @@ nodes:
           type: bitset
           name: type
           int: 6
-  - uuid: csapex::GenericTextCombiner_0
-    max_frequency: 0
+  - state:
+      persistent_params:
+        []
+      params:
+        last_value:
+          type: outtext
+          name: last_value
+        format:
+          type: value
+          name: format
+          string: laas_$1_%s_$wx$h.png
+        input count:
+          type: value
+          name: input count
+          int: 1
+        input names:
+          type: string_list
+          name: input names
+          list:
+            - accumulated error
+            - accumulated error
     type: csapex::GenericTextCombiner
+    uuid: csapex::GenericTextCombiner_0
+    max_frequency: 0
     label: csapex::GenericTextCombiner_0
     pos:
       - 449
@@ -1016,24 +852,188 @@ nodes:
     flipped: false
     exec_mode: 1
     logger_level: 1
-    state:
-      persistent_params:
-        []
-      params:
-        format:
-          type: value
-          name: format
-          string: laas_$1_%s_$wx$h.png
-        input count:
-          type: value
-          name: input count
-          int: 1
-        input names:
-          type: string_list
-          name: input names
-          list:
-            - accumulated error
-            - accumulated error
-        last_value:
-          type: outtext
-          name: last_value
+adapters:
+  []
+connections:
+  - uuid: csapex::EvaOptimizer_1:|:out_x_icr
+    targets:
+      - csapex::ParamEstimator_0:|:in_x_icr
+    types:
+      - default
+  - uuid: csapex::MarkerMessageDetector_2:|:event_0
+    targets:
+      - csapex::MakeScreenshot_0:|:slot_0
+    types:
+      - default
+  - uuid: csapex::MarkerMessageDetector_0:|:event_0
+    targets:
+      - csapex::EvaOptimizer_1:|:slot_4
+    types:
+      - default
+  - uuid: csapex::EvaOptimizer_1:|:event_0
+    targets:
+      - csapex::LAASImporter_1:|:slot_0
+    types:
+      - default
+  - types:
+      - default
+    uuid: csapex::EvaOptimizer_1:|:out_y_icr_l
+    targets:
+      - csapex::ParamEstimator_0:|:in_y_icr_l
+  - uuid: csapex::LAASImporter_1:|:out_3
+    targets:
+      - csapex::ParamEstimator_0:|:in_1
+      - csapex::ExportRos_13:|:in_0
+      - csapex::MarkerMessageDetector_2:|:in_0
+    types:
+      - default
+      - default
+      - default
+  - uuid: csapex::EvaOptimizer_1:|:out_alpha_l
+    targets:
+      - csapex::ParamEstimator_0:|:in_alpha_l
+    types:
+      - default
+  - uuid: csapex::LAASImporter_1:|:out_2
+    targets:
+      - csapex::ParamEstimator_0:|:in_0
+    types:
+      - default
+  - uuid: csapex::EvaOptimizer_1:|:event_4
+    targets:
+      - csapex::ParamEstimator_0:|:slot_0
+      - csapex::PoseDifference_0:|:slot_0
+      - csapex::GenerateRelativeTransform_0:|:slot_0
+      - csapex::LAASImporter_1:|:slot_0
+      - csapex::GenerateRelativeTransform_1:|:slot_0
+    types:
+      - default
+      - default
+      - default
+      - default
+      - default
+  - uuid: csapex::EvaOptimizer_1:|:out_y_icr_r
+    targets:
+      - csapex::ParamEstimator_0:|:in_y_icr_r
+    types:
+      - default
+  - uuid: csapex::GenericTextCombiner_0:|:out_0
+    targets:
+      - csapex::MakeScreenshot_0:|:in_format
+    types:
+      - default
+  - uuid: csapex::GenerateRelativeTransform_1:|:out_0
+    targets:
+      - csapex::GenerateRelativeTransform_0:|:in_0
+      - csapex::TransformToOdometry_2:|:in_0
+      - csapex::TransformToOdometry_6:|:in_0
+    types:
+      - default
+      - default
+      - default
+  - uuid: csapex::ParamEstimator_0:|:out_0
+    targets:
+      - csapex::PoseDifference_0:|:in_0
+      - csapex::ChangeTransformFrames_0:|:in_0
+    types:
+      - default
+      - default
+  - uuid: csapex::TransformToOdometry_2:|:out_0
+    targets:
+      - csapex::ExportRos_7:|:in_0
+    types:
+      - default
+  - uuid: csapex::TransformToOdometry_5:|:out_0
+    targets:
+      - csapex::ExportRos_12:|:in_0
+    types:
+      - default
+  - uuid: csapex::TransformToOdometry_1:|:out_0
+    targets:
+      - csapex::ExportRos_8:|:in_0
+    types:
+      - default
+  - uuid: csapex::ChangeTransformFrames_0:|:out_0
+    targets:
+      - csapex::TransformToOdometry_1:|:in_0
+    types:
+      - default
+  - uuid: csapex::EvaOptimizer_1:|:out_0
+    targets:
+      - csapex::TextDisplay_13:|:in_0
+    types:
+      - default
+  - types:
+      - default
+      - default
+    uuid: csapex::GenerateRelativeTransform_0:|:out_0
+    targets:
+      - csapex::PoseDifference_0:|:in_1
+      - csapex::TransformToOdometry_5:|:in_0
+  - uuid: csapex::TransformToOdometry_6:|:out_0
+    targets:
+      - csapex::ExportRos_11:|:in_0
+    types:
+      - default
+  - uuid: csapex::LAASImporter_1:|:out_1
+    targets:
+      - csapex::GenerateRelativeTransform_1:|:in_0
+    types:
+      - default
+  - uuid: csapex::EvaOptimizer_1:|:out_alpha_r
+    targets:
+      - csapex::ParamEstimator_0:|:in_alpha_r
+    types:
+      - default
+  - uuid: csapex::EvaOptimizer_1:|:out_1
+    targets:
+      - csapex::TextDisplay_12:|:in_0
+    types:
+      - default
+  - uuid: csapex::PoseDifference_0:|:out_1
+    targets:
+      - csapex::EvaOptimizer_1:|:slot_4
+      - csapex::MarkerMessageDetector_0:|:in_0
+      - csapex::GenericTextCombiner_0:|:in_0
+    types:
+      - default
+      - default
+      - default
+uuid_map:
+  csapex::PointCloudToDepthImage: 1
+  csapex::GenericTextCombiner: 1
+  csapex::EvaOptimizer: 2
+  csapex::ColorPointCloud: 3
+  csapex::SpinelloClustering: 1
+  csapex::StaticTransform: 3
+  csapex::TextDisplay: 21
+  csapex::TimePlot: 2
+  csapex::TransformCloud: 1
+  csapex::TransformInverter: 6
+  csapex::IntensityFilter: 1
+  csapex::LAASImporter: 2
+  csapex::TransformToPose: 4
+  csapex::ClusterPointcloud: 1
+  csapex::OdometryToTransform: 2
+  csapex::MarkerMessageDetector: 3
+  csapex::ExtractMeasures: 2
+  csapex::FileImporter: 1
+  csapex::ExportRos: 14
+  csapex::ImportRos: 1
+  csapex::GenerateRelativeTransform: 2
+  csapex::SignalLight: 1
+  csapex::ChangeTransformFrames: 5
+  csapex::CloudRenderer: 2
+  csapex::LabelClusteredPointCloud: 2
+  csapex::MakeScreenshot: 1
+  csapex::TransformToOdometry: 7
+  csapex::TransformPublisher: 4
+  csapex::ParamEstimator: 1
+  csapex::PassThrough: 1
+  csapex::PillarLocalization: 1
+  csapex::OutputDisplay: 2
+  csapex::Delay: 2
+  csapex::PointCount: 1
+  csapex::PoseDifference: 1
+  csapex::SignTransformPublisher: 1
+  csapex::PointCloudToIntensityImage: 1
