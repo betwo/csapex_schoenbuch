@@ -4,9 +4,9 @@
 #include <csapex/param/parameter_factory.h>
 #include <csapex/model/node_modifier.h>
 #include <csapex/utility/register_apex_plugin.h>
-#include <csapex_point_cloud/point_cloud_message.h>
-#include <csapex_point_cloud/normals_message.h>
-#include <csapex_point_cloud/indeces_message.h>
+#include <csapex_point_cloud/msg/point_cloud_message.h>
+#include <csapex_point_cloud/msg/normals_message.h>
+#include <csapex_point_cloud/msg/indices_message.h>
 #include <csapex/msg/generic_vector_message.hpp>
 #include <csapex/msg/generic_value_message.hpp>
 #include <csapex_ros/yaml_io.hpp>

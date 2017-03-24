@@ -12,7 +12,7 @@
 #include <csapex_ros/yaml_io.hpp>
 #include <csapex_ros/tf_listener.h>
 #include <csapex/view/utility/color.hpp>
-#include <csapex_point_cloud/point_cloud_message.h>
+#include <csapex_point_cloud/msg/point_cloud_message.h>
 #include <csapex_ros/yaml_io.hpp>
 #include <csapex_ros/generic_ros_message.h>
 #include <csapex/model/token.h>
