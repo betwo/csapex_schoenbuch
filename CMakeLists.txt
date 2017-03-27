@@ -83,6 +83,7 @@ target_link_libraries(${PROJECT_NAME}_core
 
 
 add_library(${PROJECT_NAME}_node
+    src/l_a_a_s_importer.cpp
     src/elevator_detector.cpp
     src/velodyne_segmentation_bogoslavskyi16.cpp
     src/conversion/imu_to_transform.cpp
