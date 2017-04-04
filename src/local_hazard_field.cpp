@@ -8,7 +8,7 @@
 #include <csapex/param/parameter_factory.h>
 #include <csapex/model/node_modifier.h>
 #include <csapex/utility/register_apex_plugin.h>
-#include <csapex_point_cloud/point_cloud_message.h>
+#include <csapex_point_cloud/msg/point_cloud_message.h>
 #include <csapex/profiling/timer.h>
 #include <csapex_ros/yaml_io.hpp>
 #include <csapex_ros/ros_message_conversion.h>

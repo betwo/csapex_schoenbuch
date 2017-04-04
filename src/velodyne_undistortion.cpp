@@ -4,8 +4,8 @@
 #include <csapex/param/parameter_factory.h>
 #include <csapex/model/node_modifier.h>
 #include <csapex/utility/register_apex_plugin.h>
-#include <csapex_point_cloud/point_cloud_message.h>
-#include <csapex_point_cloud/indeces_message.h>
+#include <csapex_point_cloud/msg/point_cloud_message.h>
+#include <csapex_point_cloud/msg/indeces_message.h>
 #include <csapex_core_plugins/vector_message.h>
 #include <csapex_transform/transform_message.h>
 #include <csapex/msg/generic_pointer_message.hpp>
@@ -90,9 +90,9 @@ public:
                     fixed_frame,
                     input->header.frame_id,
                     start_time,
-                    ros::Duration(0.3)))
+                    ros::Duration(std::max(0.0, scan_offset_) + 0.1)))
         {
-            aerr << "cannot transform cloud at time " << end_time << ", now is " << ros::Time::now()<< std::endl;
+            aerr << "cannot transform start cloud at time " << start_time << ", now is " << ros::Time::now()<< std::endl;
             return;
         }
 
@@ -100,9 +100,9 @@ public:
                     fixed_frame,
                     input->header.frame_id,
                     end_time,
-                    ros::Duration(0.3)))
+                    ros::Duration(std::max(0.0, scan_offset_) + 0.1)))
         {
-            aerr << "cannot transform cloud at time " << end_time << ", now is " << ros::Time::now() << std::endl;
+            aerr << "cannot transform end cloud at time " << end_time << ", now is " << ros::Time::now() << std::endl;
             return;
         }
 

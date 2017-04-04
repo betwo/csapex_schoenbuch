@@ -4,8 +4,8 @@
 #include <csapex/param/parameter_factory.h>
 #include <csapex/model/node_modifier.h>
 #include <csapex/utility/register_apex_plugin.h>
-#include <csapex_point_cloud/point_cloud_message.h>
-#include <csapex_point_cloud/indeces_message.h>
+#include <csapex_point_cloud/msg/point_cloud_message.h>
+#include <csapex_point_cloud/msg/indeces_message.h>
 #include <csapex_core_plugins/vector_message.h>
 #include <csapex_transform/transform_message.h>
 #include <csapex/msg/generic_pointer_message.hpp>
@@ -79,6 +79,7 @@ public:
         params.addParameter(param::ParameterFactory::declareRange("pillar/radius threshold", 0.000, 1.0, 0.055, 0.001),
                             localization_.pillar_extractor_.pillar_radius_fuzzy_);
 
+        params.addParameter(param::ParameterFactory::declareBool("undistortion", true), localization_.undistort_);
 
         params.addParameter(param::ParameterFactory::declareTrigger("reset"), [this](param::Parameter*) {
             reset();
@@ -131,8 +132,8 @@ public:
         tf::Transform pose = localization_.getPose();
 
         TransformMessage::Ptr result = std::make_shared<TransformMessage>("/pillars", "/base_link");
-        result->value = pose;
-        result->stamp_micro_seconds = cloud->header.stamp;
+        result->value = pose.inverse();
+        result->stamp_micro_seconds = cloud->header.stamp * 1e3;
         result->frame_id = "/pillars";
 
         msg::publish(out_, result);
@@ -142,10 +143,11 @@ public:
             has_start_pose_ = true;
         }
 
-        TransformMessage::Ptr result_rel = std::make_shared<TransformMessage>("/pillars", "/base_link");
+        TransformMessage::Ptr result_rel = std::make_shared<TransformMessage>("/odom", "/base_link");
         *result_rel = *result;
+        result_rel->frame_id = "odom";
 
-        result_rel->value = pose * start_pose_.inverse();
+        result_rel->value = (pose * start_pose_.inverse()).inverse();
 
         msg::publish(out_rel_, result_rel);
     }

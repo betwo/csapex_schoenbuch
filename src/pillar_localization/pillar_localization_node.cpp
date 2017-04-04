@@ -69,7 +69,7 @@ public:
             pcl::PointCloud<pcl::PointXYZI>::Ptr full_cloud(new pcl::PointCloud<pcl::PointXYZI>);
             pcl::fromPCLPointCloud2(pcl_pc2,*full_cloud);
 
-            localization_.applyMeasurement(full_cloud);
+            localization_.applyMeasurement(full_cloud, true);
 
             pcl::PointCloud<pcl::PointXYZI>::ConstPtr undistorted = localization_.getUndistortedCloud();
 

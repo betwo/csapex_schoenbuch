@@ -38,6 +38,8 @@ public:
     int init_steps_;
     bool init_;
 
+    bool undistort_;
+
     std::string fixed_frame_;
     ros::Duration scan_duration_;
     ros::Duration scan_offset_;
