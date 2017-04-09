@@ -426,8 +426,8 @@ public:
                     cluster.indices.push_back(s->row * cols + col);
                 }
             }
-            if(cluster.indices.size() >= cluster_min_size_ &&
-                    cluster.indices.size() <= cluster_max_size_) {
+            int count = cluster.indices.size();
+            if(count >= cluster_min_size_ && count <= cluster_max_size_) {
                 res.push_back(cluster);
             }
         }
