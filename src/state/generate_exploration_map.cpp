@@ -51,6 +51,11 @@ public:
         params.addParameter(param::ParameterFactory::declareRange("min_move_distance", 0.0, 10.0, 2.0, 0.01), min_move_distance);
         params.addParameter(param::ParameterFactory::declareRange("min_distance_to_obstacles", 0.0, 3.0, 0.75, 0.01), min_distance_to_obstacles);
         params.addParameter(param::ParameterFactory::declareRange("max_distance_to_unknown", 0.0, 3.0, 1.0, 0.01), max_distance_to_unknown);
+
+        params.addParameter(param::ParameterFactory::declareRange("shrink_kernel_size", 1, 10, 4, 1), shrink_kernel_size);
+        params.addParameter(param::ParameterFactory::declareRange("unknown_kernel_size", 1, 10, 3, 1), unknown_kernel_size);
+
+        params.addParameter(param::ParameterFactory::declareRange("free_threshold", 0, 100, 50, 1), free_threshold_);
     }
 
     void process()
@@ -161,8 +166,8 @@ private:
             for(int col = 0; col < w; ++col) {
                 const char& cell = data.at<char>(row, col);
 
-                bool free = cell >= 0 && cell <= 50;
-                bool occupied = cell > 50;
+                bool free = cell >= 0 && cell <= free_threshold_;
+                bool occupied = cell > free_threshold_;
 
                 double distance = std::hypot(row - map_pos.y, col - map_pos.x);
                 if(distance < 10.0) {
@@ -180,22 +185,20 @@ private:
             }
         }
 
+        cv::Mat shrink_kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE,
+                                                   cv::Size( 2*shrink_kernel_size + 1, 2*shrink_kernel_size+1 ),
+                                                   cv::Point( shrink_kernel_size, shrink_kernel_size ) );
 
-        int kernel_size = 4;
-        cv::Mat kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE,
-                                                   cv::Size( 2*kernel_size + 1, 2*kernel_size+1 ),
-                                                   cv::Point( kernel_size, kernel_size ) );
-        int small_kernel_size = 3;
-        cv::Mat small_kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE,
-                                                         cv::Size( 2*small_kernel_size + 1, 2*small_kernel_size+1 ),
-                                                         cv::Point( small_kernel_size, small_kernel_size ) );
+        cv::Mat unknown_kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE,
+                                                         cv::Size( 2*unknown_kernel_size + 1, 2*unknown_kernel_size+1 ),
+                                                         cv::Point( unknown_kernel_size, unknown_kernel_size ) );
 
         //    cv::dilate(map_free, map_free_safe, kernel);
 
 
-        cv::dilate(map_free, map_free, kernel);
-        cv::erode(map_obstacle, map_obstacle, kernel);
-        cv::erode(map_unknown, map_unknown, small_kernel);
+        cv::dilate(map_free, map_free, shrink_kernel);
+        cv::erode(map_obstacle, map_obstacle, shrink_kernel);
+        cv::erode(map_unknown, map_unknown, unknown_kernel);
 
         cv::distanceTransform(map_obstacle, distance_to_obstacle, CV_DIST_L2, 5);
         assert(distance_to_obstacle.type() == CV_32FC1);
@@ -240,6 +243,11 @@ private:
     cv::Mat distance_to_unknown;
 
     bool done_;
+
+    int free_threshold_;
+
+    int shrink_kernel_size;
+    int unknown_kernel_size;
 };
 
 }

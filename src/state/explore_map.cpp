@@ -103,9 +103,9 @@ private:
             goal.goal.type = path_msgs::Goal::GOAL_TYPE_MAP;
             goal.goal.min_dist = 2.0;
             goal.goal.map = *ss;
-            goal.goal.has_search_dir = false;
+            goal.planner_options.has_search_dir = false;
 
-            goal.velocity = velocity_;
+            goal.follower_options.velocity = velocity_;
             goal.failure_mode = path_msgs::NavigateToGoalGoal::FAILURE_MODE_ABORT;
 
             if(planner_.empty()) {
@@ -124,11 +124,7 @@ private:
 
             // use default follower
             // TODO: make configurable
-            follower_ = "";
-
             goal.goal.planning_algorithm.data = planner_;
-            goal.goal.following_algorithm.data = follower_;
-
             ROS_WARN("exploring: send goal");
 
             sendGoal(goal);
@@ -145,9 +141,9 @@ private:
     }
 
     nav_msgs::OccupancyGridPtr generateSearchSpace(const cv::Point2i& map_pos,
-                                                                double min_move_distance,
-                                                                double min_distance_to_obstacles,
-                                                                double max_distance_to_unknown)
+                                                   double min_move_distance,
+                                                   double min_distance_to_obstacles,
+                                                   double max_distance_to_unknown)
     {
         int w = last_map.info.width;
         int h = last_map.info.height;
@@ -273,7 +269,7 @@ private:
 
 
     void processResultCallback(const actionlib::SimpleClientGoalState& /*state*/,
-                             const path_msgs::NavigateToGoalResultConstPtr& result)
+                               const path_msgs::NavigateToGoalResultConstPtr& result)
     {
         ROS_WARN("done exploring");
         if(result) {
