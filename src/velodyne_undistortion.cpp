@@ -5,7 +5,7 @@
 #include <csapex/model/node_modifier.h>
 #include <csapex/utility/register_apex_plugin.h>
 #include <csapex_point_cloud/msg/point_cloud_message.h>
-#include <csapex_point_cloud/msg/indeces_message.h>
+#include <csapex_point_cloud/msg/indices_message.h>
 #include <csapex_core_plugins/vector_message.h>
 #include <csapex_transform/transform_message.h>
 #include <csapex/msg/generic_pointer_message.hpp>
@@ -67,8 +67,8 @@ public:
     void inputCloud(typename pcl::PointCloud<PointT>::ConstPtr input)
     {
         const pcl::PointCloud<PointT>& cloud = *input;
-        int cols = cloud.width;
-        int rows = cloud.height;
+        std::size_t cols = cloud.width;
+        std::size_t rows = cloud.height;
 
         apex_assert_hard(cols > 1 && rows > 1);
         apex_assert_hard(cloud.isOrganized());

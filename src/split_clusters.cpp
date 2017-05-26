@@ -6,7 +6,7 @@
 #include <csapex/utility/register_apex_plugin.h>
 #include <csapex_point_cloud/msg/point_cloud_message.h>
 #include <csapex_point_cloud/msg/normals_message.h>
-#include <csapex_point_cloud/msg/indeces_message.h>
+#include <csapex_point_cloud/msg/indices_message.h>
 #include <csapex/msg/generic_vector_message.hpp>
 #include <csapex/msg/generic_value_message.hpp>
 #include <csapex_ros/yaml_io.hpp>
@@ -426,8 +426,8 @@ public:
                     cluster.indices.push_back(s->row * cols + col);
                 }
             }
-            if(cluster.indices.size() >= cluster_min_size_ &&
-                    cluster.indices.size() <= cluster_max_size_) {
+            int count = cluster.indices.size();
+            if(count >= cluster_min_size_ && count <= cluster_max_size_) {
                 res.push_back(cluster);
             }
         }
