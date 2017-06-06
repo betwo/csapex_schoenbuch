@@ -103,9 +103,9 @@ private:
             goal.goal.type = path_msgs::Goal::GOAL_TYPE_MAP;
             goal.goal.min_dist = 2.0;
             goal.goal.map = *ss;
-            goal.goal.has_search_dir = false;
+            goal.planner_options.has_search_dir = false;
 
-            goal.velocity = velocity_;
+            goal.follower_options.velocity = velocity_;
             goal.failure_mode = path_msgs::NavigateToGoalGoal::FAILURE_MODE_ABORT;
 
             if(planner_.empty()) {
@@ -127,7 +127,7 @@ private:
             follower_ = "";
 
             goal.goal.planning_algorithm.data = planner_;
-            goal.goal.following_algorithm.data = follower_;
+            goal.follower_options.robot_controller.data = follower_;
 
             ROS_WARN("exploring: send goal");
 
