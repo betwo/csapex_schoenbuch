@@ -26,6 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   tf
   person_msgs
+  path_msgs
   csapex csapex_point_cloud csapex_transform csapex_core_plugins csapex_ros
 )
 find_package(PCL 1.7 REQUIRED COMPONENTS common filters segmentation)
