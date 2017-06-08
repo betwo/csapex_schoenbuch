@@ -125,6 +125,7 @@ private:
             // use default follower
             // TODO: make configurable
             goal.goal.planning_algorithm.data = planner_;
+            goal.follower_options.robot_controller.data = follower_;
             ROS_WARN("exploring: send goal");
 
             sendGoal(goal);

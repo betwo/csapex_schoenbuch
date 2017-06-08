@@ -32,6 +32,7 @@ find_package(PCL 1.7 REQUIRED COMPONENTS common filters segmentation)
 
 find_package(Eigen3 REQUIRED)
 
+include_directories(include)
 
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
@@ -42,7 +43,6 @@ catkin_package(
     DEPENDS Eigen3
 )
 
-include_directories(include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 include_directories(

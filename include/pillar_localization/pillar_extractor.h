@@ -39,7 +39,7 @@ public:
 
 private:
 
-    double fitCylinder(const std::vector<Point*>& cluster,
+    double fitCylinder(const std::vector<ClusteredPoint*>& cluster,
                        double& r, Eigen::Vector3d& C, Eigen::Vector3d& W);
 
     double G(std::size_t n,
@@ -50,7 +50,7 @@ private:
 
 
 public:
-    std::vector<Point> points;
+    std::vector<ClusteredPoint> points;
     std::vector<Cluster> clusters;
     std::vector<std::vector<Cluster*> > row_clusters;
 };
