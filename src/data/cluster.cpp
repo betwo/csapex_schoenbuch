@@ -15,7 +15,7 @@ bool Cluster::empty()
     return pts.empty();
 }
 
-void Cluster::add(Point *p)
+void Cluster::add(ClusteredPoint *p)
 {
     pts.push_back(p);
     p->cluster = this;
@@ -25,33 +25,33 @@ void Cluster::add(Point *p)
 
 void Cluster::merge(Cluster* other)
 {
-    for(std::vector<Point*>::iterator it = other->pts.begin(); it != other->pts.end(); ++it) {
+    for(std::vector<ClusteredPoint*>::iterator it = other->pts.begin(); it != other->pts.end(); ++it) {
         pts.push_back(*it);
         (*it)->cluster = this;
     }
     other->pts.clear();
-    other->mean = Point();
+    other->mean = ClusteredPoint();
 
     dirty_ = true;
 }
 
 void Cluster::reindex()
 {
-    for(std::vector<Point*>::iterator it = pts.begin(); it != pts.end(); ++it) {
+    for(std::vector<ClusteredPoint*>::iterator it = pts.begin(); it != pts.end(); ++it) {
         (*it)->cluster = this;
     }
 }
 
 void Cluster::clear()
 {
-    for(std::vector<Point*>::iterator it = pts.begin(); it != pts.end(); ++it) {
+    for(std::vector<ClusteredPoint*>::iterator it = pts.begin(); it != pts.end(); ++it) {
         (*it)->cluster = 0;
     }
     pts.clear();
-    mean = Point();
+    mean = ClusteredPoint();
 }
 
-Point Cluster::getMean()
+ClusteredPoint Cluster::getMean()
 {
     if(dirty_) {
         calculateMean();
@@ -88,8 +88,8 @@ void Cluster::calculateMean()
     double max_z = -std::numeric_limits<double>::infinity();
     double min_z = std::numeric_limits<double>::infinity();
 
-    for(std::vector<Point*>::const_iterator it = pts.begin(); it != pts.end(); ++it) {
-        const Point& pt = (**it);
+    for(std::vector<ClusteredPoint*>::const_iterator it = pts.begin(); it != pts.end(); ++it) {
+        const ClusteredPoint& pt = (**it);
         mean.x += pt.x;
         mean.y += pt.y;
         mean.z += pt.z;

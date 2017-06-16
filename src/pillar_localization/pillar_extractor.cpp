@@ -36,7 +36,7 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
         for(int col = 0; col < cols; ++col) {
             for(int row = 0; row < rows; ++row) {
                 const pcl::PointXYZI& pt = cloud.at(col, row);
-                Point& pt_out = points.at(row * cols + col);
+                ClusteredPoint& pt_out = points.at(row * cols + col);
 
                 pt_out.x = pt.x;
                 pt_out.y = pt.y;
@@ -56,14 +56,14 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
         row_clusters.resize(rows);
 
         for(int row = 0; row < rows; ++row) {
-            Point* last = NULL;
+            ClusteredPoint* last = NULL;
             clusters.push_back(Cluster());
             Cluster* current_cluster = &clusters.back();
             row_clusters[row].reserve(cols);
             row_clusters[row].push_back(current_cluster);
 
             for(int col = 0; col < cols; ++col) {
-                Point& current = points[row * cols + col];
+                ClusteredPoint& current = points[row * cols + col];
                 if(std::isnan(current.x)) continue;
 
                 if(last) {
@@ -127,10 +127,10 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
                                 if(c2->col_start > c1->col_end || c1->col_start > c2->col_end) continue;
 
                                 for(std::size_t k = 0, n = c1->pts.size(); k < n; ++k) {
-                                    Point* p1 = c1->pts[k];
+                                    ClusteredPoint* p1 = c1->pts[k];
                                     bool merged = false;
                                     for(std::size_t l = 0, m = c2->pts.size(); l < m; ++l) {
-                                        Point* p2 = c2->pts[l];
+                                        ClusteredPoint* p2 = c2->pts[l];
                                         double distance = p1->distanceXY(*p2);
                                         if(distance < cluster_distance_vertical_) {
                                             c1->merge(c2);
@@ -166,7 +166,7 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
         } else {
             std::vector<float> intensities(c.pts.size(), 0.0f);
             for(std::size_t j = 0, n = c.pts.size(); j < n; ++j) {
-                Point* p = c.pts[j];
+                ClusteredPoint* p = c.pts[j];
                 intensities[j++] = p->intensity;
             }
 
@@ -190,10 +190,10 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
                     Cluster* c2 = *it2;
                     if(c1 != c2 && !c2->empty()) {
                         for(std::size_t k = 0, n = c1->pts.size(); k < n; ++k) {
-                            Point* p1 = c1->pts[k];
+                            ClusteredPoint* p1 = c1->pts[k];
                             bool merged = false;
                             for(std::size_t l = 0, n = c2->pts.size(); l < n; ++l) {
-                                Point* p2 = c2->pts[l];
+                                ClusteredPoint* p2 = c2->pts[l];
                                 double distance = p1->distanceXYZ(*p2);
                                 if(distance < cluster_distance_euclidean_) {
                                     c1->merge(c2);
@@ -260,7 +260,7 @@ std::vector<Pillar> PillarExtractor::findPillars(const pcl::PointCloud<pcl::Poin
 }
 
 
-double PillarExtractor::fitCylinder(const std::vector<Point*>& cluster,
+double PillarExtractor::fitCylinder(const std::vector<ClusteredPoint*>& cluster,
                                     double& r, Eigen::Vector3d& C, Eigen::Vector3d& W)
 {
     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > X;
@@ -270,7 +270,7 @@ double PillarExtractor::fitCylinder(const std::vector<Point*>& cluster,
 
     Eigen::Vector3d average = Eigen::Vector3d::Zero();
     for(std::size_t i = 0; i < n; ++i) {
-        Point* pt = cluster[i];
+        ClusteredPoint* pt = cluster[i];
         Eigen::Vector3d p;
         p << pt->x, pt->y, pt->z;
 

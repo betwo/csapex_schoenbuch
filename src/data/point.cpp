@@ -1,16 +1,16 @@
 /// HEADER
-#include "data/point.h"
+#include <data/point.h>
 
 /// SYSTEM
 #include <cmath>
 
-Point::Point()
+ClusteredPoint::ClusteredPoint()
     : jump_distance(0.0f), type(0), cluster(0)
 {
 
 }
 
-double Point::distanceXYZ(const Point& other)
+double ClusteredPoint::distanceXYZ(const ClusteredPoint& other)
 {
     double dx = x - other.x;
     double dy = y - other.y;
@@ -18,14 +18,14 @@ double Point::distanceXYZ(const Point& other)
     return std::sqrt(dx*dx + dy*dy + dz*dz);
 }
 
-double Point::distanceXY(const Point& other)
+double ClusteredPoint::distanceXY(const ClusteredPoint& other)
 {
     double dx = x - other.x;
     double dy = y - other.y;
     return std::sqrt(dx*dx + dy*dy);
 }
 
-double Point::range()
+double ClusteredPoint::range()
 {
     return std::sqrt(x*x + y*y + z*z);
 }

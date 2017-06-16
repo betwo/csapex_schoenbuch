@@ -104,7 +104,7 @@ public:
         apex_assert_hard(cols > 1 && rows > 1);
         apex_assert_hard(cloud.isOrganized());
 
-        std::vector<Point> points;
+        std::vector<ClusteredPoint> points;
         std::vector<Cluster> clusters;
         std::vector<std::vector<Cluster*> > row_clusters;
 
@@ -119,7 +119,7 @@ public:
             for(int col = 0; col < cols; ++col) {
                 for(int row = 0; row < rows; ++row) {
                     const pcl::PointXYZI& pt = cloud.at(col, row);
-                    Point& pt_out = points.at(row * cols + col);
+                    ClusteredPoint& pt_out = points.at(row * cols + col);
 
                     pt_out.x = pt.x;
                     pt_out.y = pt.y;
@@ -141,14 +141,14 @@ public:
             row_clusters.resize(rows);
 
             for(int row = 0; row < rows; ++row) {
-                Point* last = nullptr;
+                ClusteredPoint* last = nullptr;
                 clusters.push_back(Cluster());
                 Cluster* current_cluster = &clusters.back();
                 row_clusters[row].reserve(cols);
                 row_clusters[row].push_back(current_cluster);
 
                 for(int col = 0; col < cols; ++col) {
-                    Point& current = points[row * cols + col];
+                    ClusteredPoint& current = points[row * cols + col];
                     if(std::isnan(current.x)) continue;
 
                     if(last) {
@@ -263,10 +263,10 @@ public:
                             Cluster& c2 = *it2;
                             if(!c2.empty() && c1.getMean().distanceXY(c2.getMean()) < cluster_max_diameter_ * 2) {
                                 for(std::size_t k = 0, n = c1.pts.size(); k < n; ++k) {
-                                    Point* p1 = c1.pts[k];
+                                    ClusteredPoint* p1 = c1.pts[k];
                                     bool merged = false;
                                     for(std::size_t l = 0, n = c2.pts.size(); l < n; ++l) {
-                                        Point* p2 = c2.pts[l];
+                                        ClusteredPoint* p2 = c2.pts[l];
                                         double distance = p1->distanceXYZ(*p2);
                                         if(distance < cluster_distance_euclidean_) {
                                             c1.merge(&c2);
@@ -324,7 +324,7 @@ public:
 
         for(int col = 0; col < cols; ++col) {
             for(int row = 0; row < rows; ++row) {
-                const Point& pt = points.at(row * cols + col);
+                const ClusteredPoint& pt = points.at(row * cols + col);
                 pcl::PointXYZRGB& pt_out = labeled_cloud.at(col, row);
 
                 pt_out.x = pt.x;

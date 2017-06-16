@@ -118,7 +118,7 @@ public:
 
         for(int col = 0; col < cols; ++col) {
             for(int row = 0; row < rows; ++row) {
-                const Point& pt = extractor_.points.at(row * cols + col);
+                const ClusteredPoint& pt = extractor_.points.at(row * cols + col);
                 pcl::PointXYZRGB& pt_out = labeled_cloud.at(col, row);
 
                 pt_out.x = pt.x;
